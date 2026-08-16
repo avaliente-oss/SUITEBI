@@ -541,8 +541,17 @@ function SuiteLobby({
   const [toast, setToast] = useState("");
   const [opening, setOpening] = useState<SolutionId | null>(null);
   const [mobileNav, setMobileNav] = useState(false);
+  const [navView, setNavView] = useState<"lobby" | "workspace" | "solutions">("lobby");
   const organization =
     viewer.organizations.find((item) => item.id === organizationId) ?? viewer.organizations[0];
+
+  function goToView(view: "lobby" | "workspace" | "solutions") {
+    setNavView(view);
+    setMobileNav(false);
+    const targetId =
+      view === "lobby" ? "welcome-row" : view === "workspace" ? "active-workspace" : "solutions-section";
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -586,7 +595,7 @@ function SuiteLobby({
       );
       setFocusedSolution(solution.id);
       setToast(`${solution.name} ya está lista en tu mesa de trabajo.`);
-      document.getElementById("active-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      goToView("workspace");
     } catch (error) {
       setToast(error instanceof Error ? error.message : "No pudimos abrir la solución.");
     } finally {
@@ -612,9 +621,24 @@ function SuiteLobby({
 
         <nav className="primary-nav" aria-label="Navegación principal">
           <span className="nav-label">ESPACIO</span>
-          <button className="active"><LayoutDashboard size={18} /> Lobby <span>⌘1</span></button>
-          <button><GalleryHorizontalEnd size={18} /> Mesa activa <b>{activeSolutions.length}</b></button>
-          <button><Blocks size={18} /> Todas las soluciones</button>
+          <button
+            className={navView === "lobby" ? "active" : ""}
+            onClick={() => goToView("lobby")}
+          >
+            <LayoutDashboard size={18} /> Lobby <span>⌘1</span>
+          </button>
+          <button
+            className={navView === "workspace" ? "active" : ""}
+            onClick={() => goToView("workspace")}
+          >
+            <GalleryHorizontalEnd size={18} /> Mesa activa <b>{activeSolutions.length}</b>
+          </button>
+          <button
+            className={navView === "solutions" ? "active" : ""}
+            onClick={() => goToView("solutions")}
+          >
+            <Blocks size={18} /> Todas las soluciones
+          </button>
 
           <span className="nav-label second">ORGANIZACIÓN</span>
           <button><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
@@ -665,7 +689,7 @@ function SuiteLobby({
         </header>
 
         <div className="dashboard-content">
-          <section className="welcome-row">
+          <section className="welcome-row" id="welcome-row">
             <div>
               <span className="today-label"><i /> VIERNES · 15 AGOSTO</span>
               <h1>Tu negocio está en movimiento.</h1>
@@ -688,7 +712,7 @@ function SuiteLobby({
           </section>
 
           <div className="dashboard-grid">
-            <section className="solutions-section">
+            <section className="solutions-section" id="solutions-section">
               <div className="section-heading">
                 <div><span className="section-kicker">TU SUITE</span><h2>Soluciones disponibles</h2></div>
                 <button>Ver catálogo <ArrowRight size={16} /></button>
