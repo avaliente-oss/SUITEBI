@@ -4,7 +4,7 @@ import { SignJWT } from "jose";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const bridgeSecret = process.env.ERP_BRIDGE_SECRET;
+const bridgeSecret = process.env.SUITE_BRIDGE_SECRET;
 const erpAppUrl = process.env.ERP_APP_URL;
 
 type AuthorizeDecision = {
@@ -87,9 +87,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "NOT_ORGANIZATION_MEMBER" }, { status: 403 });
   }
 
+  const { data: organization, error: organizationError } = await userClient
+    .from("organizations")
+    .select("name")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (organizationError || !organization) {
+    return NextResponse.json({ error: "ORGANIZATION_NOT_FOUND" }, { status: 404 });
+  }
+
+  if (!userData.user.email) {
+    return NextResponse.json({ error: "USER_HAS_NO_EMAIL" }, { status: 400 });
+  }
+
   const secretKey = new TextEncoder().encode(bridgeSecret);
   const token = await new SignJWT({
+    email: userData.user.email,
     organization_id: organizationId,
+    organization_name: organization.name,
     role: membership.role,
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
@@ -100,7 +116,7 @@ export async function POST(request: NextRequest) {
     .setAudience("davalsy-erp")
     .sign(secretKey);
 
-  const redirectUrl = `${erpAppUrl.replace(/\/$/, "")}/auth/callback?token=${token}`;
+  const redirectUrl = `${erpAppUrl.replace(/\/$/, "")}/auth/suite-entry?token=${token}`;
 
   return NextResponse.json({ redirectUrl });
 }
