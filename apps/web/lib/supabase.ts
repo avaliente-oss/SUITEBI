@@ -52,6 +52,79 @@ export async function loadViewerContext(client: SupabaseClient): Promise<ViewerC
   return data;
 }
 
+function slugifyOrganizationName(name: string) {
+  const base = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "")
+    .slice(0, 60);
+
+  return base.length ? base : "organizacion";
+}
+
+export async function createOrganizationForCurrentUser(client: SupabaseClient, name: string, userId: string) {
+  const baseSlug = slugifyOrganizationName(name);
+  let slug = baseSlug;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { error } = await client.from("organizations").insert({
+      name,
+      slug,
+      created_by: userId,
+    });
+
+    if (!error) return;
+    if (error.code !== "23505") throw error;
+
+    slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  throw new Error("No pudimos crear tu organización, ese nombre ya está muy solicitado. Intenta con otro.");
+}
+
+export async function completePendingOrganizationSetup(client: SupabaseClient) {
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user) return;
+
+  const pendingName = data.user.user_metadata?.pending_organization_name;
+  if (typeof pendingName !== "string" || !pendingName.trim()) return;
+
+  await createOrganizationForCurrentUser(client, pendingName.trim(), data.user.id);
+  await client.auth.updateUser({ data: { pending_organization_name: null } });
+}
+
+export async function signUpWithOrganization(
+  client: SupabaseClient,
+  params: { fullName: string; organizationName: string; email: string; password: string },
+) {
+  const { fullName, organizationName, email, password } = params;
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        pending_organization_name: organizationName,
+      },
+      emailRedirectTo:
+        typeof window !== "undefined" ? window.location.origin : undefined,
+    },
+  });
+
+  if (error) throw error;
+
+  if (data.session && data.user) {
+    await createOrganizationForCurrentUser(client, organizationName, data.user.id);
+    await client.auth.updateUser({ data: { pending_organization_name: null } });
+    return { needsEmailConfirmation: false };
+  }
+
+  return { needsEmailConfirmation: true };
+}
+
 export async function authorizeSolution(
   client: SupabaseClient,
   organizationId: string,

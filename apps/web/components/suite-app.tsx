@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   ArrowRight,
@@ -35,9 +35,11 @@ import {
 } from "lucide-react";
 import {
   authorizeSolution,
+  completePendingOrganizationSetup,
   getSupabaseBrowserClient,
   isSupabaseConfigured,
   loadViewerContext,
+  signUpWithOrganization,
 } from "@/lib/supabase";
 import {
   demoViewer,
@@ -83,6 +85,7 @@ export function SuiteApp() {
 
     const hydrate = async () => {
       try {
+        await completePendingOrganizationSetup(supabase);
         const context = await loadViewerContext(supabase);
         if (!active) return;
         setViewer(context);
@@ -121,6 +124,7 @@ export function SuiteApp() {
     if (!supabase) return;
     setPhase("loading");
     try {
+      await completePendingOrganizationSetup(supabase);
       setViewer(await loadViewerContext(supabase));
       setPhase("signed_in");
       setAuthError("");
@@ -203,6 +207,7 @@ function LoginScreen({
   onDemo: () => void;
 }) {
   const supabase = getSupabaseBrowserClient();
+  const [screen, setScreen] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"password" | "magic">("password");
@@ -210,9 +215,22 @@ function LoginScreen({
   const [formError, setFormError] = useState(error);
   const [busy, setBusy] = useState(false);
 
+  const [fullName, setFullName] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const submitLockRef = useRef(false);
+
+  function switchScreen(next: "login" | "signup") {
+    setScreen(next);
+    setFormError("");
+    setMessage("");
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase) return;
+    if (!supabase || submitLockRef.current) return;
+    submitLockRef.current = true;
 
     setBusy(true);
     setFormError("");
@@ -240,6 +258,48 @@ function LoginScreen({
       );
     } finally {
       setBusy(false);
+      submitLockRef.current = false;
+    }
+  }
+
+  async function submitSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || submitLockRef.current) return;
+
+    if (signupPassword.length < 8) {
+      setFormError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    submitLockRef.current = true;
+    setBusy(true);
+    setFormError("");
+    setMessage("");
+
+    try {
+      const { needsEmailConfirmation } = await signUpWithOrganization(supabase, {
+        fullName,
+        organizationName,
+        email: signupEmail,
+        password: signupPassword,
+      });
+
+      if (needsEmailConfirmation) {
+        setScreen("login");
+        setFormError("");
+        setMessage(
+          "Te enviamos un correo para confirmar tu cuenta. Confírmalo y luego inicia sesión: tu organización se creará automáticamente.",
+        );
+      } else {
+        await onAuthenticated();
+      }
+    } catch (submitError) {
+      setFormError(
+        submitError instanceof Error ? submitError.message : "No pudimos crear tu cuenta.",
+      );
+    } finally {
+      setBusy(false);
+      submitLockRef.current = false;
     }
   }
 
@@ -283,73 +343,170 @@ function LoginScreen({
         <div className="login-card">
           <div className="mobile-brand"><BrandMark compact /></div>
           <span className="step-label">ACCESO A LA SUITE</span>
-          <h2>Qué bueno verte.</h2>
-          <p className="login-intro">Ingresa con la cuenta vinculada a tu organización.</p>
+          <h2>{screen === "login" ? "Qué bueno verte." : "Crea tu cuenta."}</h2>
+          <p className="login-intro">
+            {screen === "login"
+              ? "Ingresa con la cuenta vinculada a tu organización."
+              : "Crea tu cuenta y tu organización para empezar a trabajar hoy mismo."}
+          </p>
 
-          <div className="auth-tabs" role="tablist" aria-label="Método de acceso">
+          <div className="auth-tabs" role="tablist" aria-label="Pantalla de acceso">
             <button
               type="button"
-              className={mode === "password" ? "active" : ""}
-              onClick={() => setMode("password")}
+              className={screen === "login" ? "active" : ""}
+              onClick={() => switchScreen("login")}
             >
-              Contraseña
+              Iniciar sesión
             </button>
             <button
               type="button"
-              className={mode === "magic" ? "active" : ""}
-              onClick={() => setMode("magic")}
+              className={screen === "signup" ? "active" : ""}
+              onClick={() => switchScreen("signup")}
             >
-              Enlace seguro
+              Crear cuenta
             </button>
           </div>
 
-          <form onSubmit={submit}>
-            <label htmlFor="email">Correo de trabajo</label>
-            <div className="input-wrap">
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="nombre@empresa.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                disabled={!isSupabaseConfigured}
-              />
-              <Check size={17} />
-            </div>
+          {screen === "login" && (
+            <>
+              <div className="auth-tabs" role="tablist" aria-label="Método de acceso">
+                <button
+                  type="button"
+                  className={mode === "password" ? "active" : ""}
+                  onClick={() => setMode("password")}
+                >
+                  Contraseña
+                </button>
+                <button
+                  type="button"
+                  className={mode === "magic" ? "active" : ""}
+                  onClick={() => setMode("magic")}
+                >
+                  Enlace seguro
+                </button>
+              </div>
 
-            {mode === "password" && (
-              <>
-                <div className="label-row">
-                  <label htmlFor="password">Contraseña</label>
-                  <button type="button" className="text-action">¿La olvidaste?</button>
+              <form onSubmit={submit}>
+                <label htmlFor="email">Correo de trabajo</label>
+                <div className="input-wrap">
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="nombre@empresa.com"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                    disabled={!isSupabaseConfigured}
+                  />
+                  <Check size={17} />
                 </div>
+
+                {mode === "password" && (
+                  <>
+                    <div className="label-row">
+                      <label htmlFor="password">Contraseña</label>
+                      <button type="button" className="text-action">¿La olvidaste?</button>
+                    </div>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="Tu contraseña"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required
+                      disabled={!isSupabaseConfigured}
+                    />
+                  </>
+                )}
+
+                {(formError || message) && (
+                  <p className={`auth-message ${formError ? "is-error" : ""}`}>
+                    {formError || message}
+                  </p>
+                )}
+
+                <button className="primary-login" type="submit" disabled={busy || !isSupabaseConfigured}>
+                  {busy ? <LoaderCircle className="spin" size={18} /> : null}
+                  {mode === "password" ? "Entrar a mi suite" : "Enviar enlace de acceso"}
+                  {!busy ? <ArrowRight size={18} /> : null}
+                </button>
+              </form>
+            </>
+          )}
+
+          {screen === "signup" && (
+            <form onSubmit={submitSignup}>
+              <label htmlFor="full-name">Nombre completo</label>
+              <div className="input-wrap">
                 <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Tu contraseña"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  id="full-name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Tu nombre y apellido"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
                   required
                   disabled={!isSupabaseConfigured}
                 />
-              </>
-            )}
+              </div>
 
-            {(formError || message) && (
-              <p className={`auth-message ${formError ? "is-error" : ""}`}>
-                {formError || message}
-              </p>
-            )}
+              <label htmlFor="organization-name">Nombre de tu organización</label>
+              <div className="input-wrap">
+                <input
+                  id="organization-name"
+                  type="text"
+                  autoComplete="organization"
+                  placeholder="Ej. Mi Empresa SA de CV"
+                  value={organizationName}
+                  onChange={(event) => setOrganizationName(event.target.value)}
+                  required
+                  disabled={!isSupabaseConfigured}
+                />
+              </div>
 
-            <button className="primary-login" type="submit" disabled={busy || !isSupabaseConfigured}>
-              {busy ? <LoaderCircle className="spin" size={18} /> : null}
-              {mode === "password" ? "Entrar a mi suite" : "Enviar enlace de acceso"}
-              {!busy ? <ArrowRight size={18} /> : null}
-            </button>
-          </form>
+              <label htmlFor="signup-email">Correo de trabajo</label>
+              <div className="input-wrap">
+                <input
+                  id="signup-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="nombre@empresa.com"
+                  value={signupEmail}
+                  onChange={(event) => setSignupEmail(event.target.value)}
+                  required
+                  disabled={!isSupabaseConfigured}
+                />
+                <Check size={17} />
+              </div>
+
+              <label htmlFor="signup-password">Contraseña</label>
+              <input
+                id="signup-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Mínimo 8 caracteres"
+                value={signupPassword}
+                onChange={(event) => setSignupPassword(event.target.value)}
+                required
+                minLength={8}
+                disabled={!isSupabaseConfigured}
+              />
+
+              {(formError || message) && (
+                <p className={`auth-message ${formError ? "is-error" : ""}`}>
+                  {formError || message}
+                </p>
+              )}
+
+              <button className="primary-login" type="submit" disabled={busy || !isSupabaseConfigured}>
+                {busy ? <LoaderCircle className="spin" size={18} /> : null}
+                Crear mi cuenta
+                {!busy ? <ArrowRight size={18} /> : null}
+              </button>
+            </form>
+          )}
 
           {!isSupabaseConfigured && (
             <div className="demo-access">

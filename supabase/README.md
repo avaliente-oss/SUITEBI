@@ -85,6 +85,7 @@ Las migraciones se aplican en este orden:
 1. `20260813000100_user_security_core.sql`
 2. `20260815000100_suite_lobby_access.sql`
 3. `20260815000200_suite_lobby_context.sql`
+4. `20260815000300_self_serve_trial.sql`
 
 Con Supabase CLI:
 
@@ -99,3 +100,25 @@ supabase migration up
 ```
 
 La migracion asume un proyecto Supabase con `auth.users` disponible.
+
+## Alta self-serve (registro desde la app)
+
+El frontend (`apps/web`) implementa registro self-serve: el usuario crea su cuenta con
+`supabase.auth.signUp` y en el mismo flujo se inserta una fila en `public.organizations`
+con `created_by = auth.uid()`. Esto dispara dos triggers ya existentes en cadena:
+
+- `organizations_create_owner_membership`: crea la membresia `owner` del usuario en su
+  organizacion nueva.
+- `organizations_start_trial_subscription` (nuevo, en `20260815000300_self_serve_trial.sql`):
+  crea una suscripcion `trial` de 14 dias sobre el plan `starter` para que la organizacion
+  tenga features activas desde el primer segundo, sin esperar a Stripe.
+
+Si el proyecto tiene activa la confirmacion de correo en Supabase Auth, el `signUp` no
+devuelve sesion de inmediato. El frontend guarda el nombre de la organizacion pendiente en
+`user_metadata.pending_organization_name` y la crea automaticamente en el primer login
+confirmado (`completePendingOrganizationSetup` en `apps/web/lib/supabase.ts`).
+
+Para que el acceso sea inmediato sin confirmar correo (como se definio para este proyecto),
+desactiva "Confirm email" en el dashboard de Supabase: Authentication → Sign In / Providers →
+Email → "Confirm email" (off). Con eso, `signUp` entrega sesion activa de inmediato y la
+organizacion se crea en el mismo submit del formulario de registro.
