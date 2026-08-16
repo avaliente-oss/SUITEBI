@@ -125,6 +125,28 @@ export async function signUpWithOrganization(
   return { needsEmailConfirmation: true };
 }
 
+export async function requestErpBridgeRedirect(client: SupabaseClient, organizationId: string) {
+  const { data: sessionData } = await client.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("No hay una sesión activa.");
+
+  const response = await fetch("/api/erp-bridge", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ organizationId }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "No pudimos conectar con DavOps ERP.");
+  }
+
+  return payload as { redirectUrl: string };
+}
+
 export async function authorizeSolution(
   client: SupabaseClient,
   organizationId: string,

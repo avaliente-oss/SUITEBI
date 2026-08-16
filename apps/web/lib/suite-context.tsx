@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { authorizeSolution, getSupabaseBrowserClient } from "@/lib/supabase";
+import { authorizeSolution, getSupabaseBrowserClient, requestErpBridgeRedirect } from "@/lib/supabase";
 import {
   solutions,
   type OrganizationContext,
@@ -97,6 +97,15 @@ export function SuiteProvider({
           setToast(accessReasons[decision.reason_code] ?? "No tienes acceso a esta solución.");
           return;
         }
+
+        if (solution.external) {
+          const { redirectUrl } = await requestErpBridgeRedirect(supabase, organization.id);
+          window.location.href = redirectUrl;
+          return;
+        }
+      } else if (solution.external) {
+        setToast(`${solution.name} no está disponible en modo demo.`);
+        return;
       }
 
       setActiveSolutions((current) =>

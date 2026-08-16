@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
+  Boxes,
   Code2,
   Database,
   ExternalLink,
@@ -27,6 +28,7 @@ export const solutionIcons = {
   bell: Bell,
   file: FileBarChart,
   code: Code2,
+  boxes: Boxes,
 };
 
 export function LoadingScreen() {

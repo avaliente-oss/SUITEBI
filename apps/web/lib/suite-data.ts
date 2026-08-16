@@ -4,7 +4,8 @@ export type SolutionId =
   | "forecast"
   | "alerts"
   | "exports"
-  | "developer";
+  | "developer"
+  | "erp";
 
 export type Solution = {
   id: SolutionId;
@@ -13,10 +14,12 @@ export type Solution = {
   description: string;
   featureKey: string;
   action: string;
-  icon: "chart" | "database" | "sparkles" | "bell" | "file" | "code";
-  accent: "cyan" | "coral" | "lime" | "amber" | "blue" | "ink";
+  icon: "chart" | "database" | "sparkles" | "bell" | "file" | "code" | "boxes";
+  accent: "cyan" | "coral" | "lime" | "amber" | "blue" | "ink" | "violet";
   metric: string;
   metricLabel: string;
+  /** Apps que viven fuera de la Suite (otro dominio) y se abren vía puente de sesión, no en la mesa activa. */
+  external?: boolean;
 };
 
 export type OrganizationContext = {
@@ -111,6 +114,19 @@ export const solutions: Solution[] = [
     accent: "ink",
     metric: "99.98%",
     metricLabel: "disponibilidad API",
+  },
+  {
+    id: "erp",
+    name: "DavOps ERP",
+    eyebrow: "Operación",
+    description: "Administra inventario, compras y operación conectada a tu organización.",
+    featureKey: "erp.access",
+    action: "erp.access",
+    icon: "boxes",
+    accent: "violet",
+    metric: "Conectado",
+    metricLabel: "operación en tiempo real",
+    external: true,
   },
 ];
 
