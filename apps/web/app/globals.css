@@ -806,9 +806,9 @@ button:disabled {
 .settings-form { display: grid; }
 .settings-form label { font-size: 11px; font-weight: 700; letter-spacing: .02em; margin: 14px 0 7px; }
 .settings-form label:first-child { margin-top: 0; }
-.settings-form input { background: var(--white); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; height: 42px; padding: 0 13px; width: 100%; }
-.settings-form input:focus-visible { border-color: var(--accent-dark); }
-.settings-form input:disabled { color: var(--muted); opacity: .75; }
+.settings-form input, .settings-form select { background: var(--white); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; height: 42px; padding: 0 13px; width: 100%; }
+.settings-form input:focus-visible, .settings-form select:focus-visible { border-color: var(--accent-dark); }
+.settings-form input:disabled, .settings-form select:disabled { color: var(--muted); opacity: .75; }
 .settings-submit { align-self: start; margin-top: 20px; padding: 0 20px; width: auto; }
 
 /* Plan y facturación */
@@ -848,6 +848,13 @@ button:disabled {
 .admin-back:hover { color: var(--on-chrome); }
 .admin-content { margin: 0 auto; max-width: 1100px; padding: 36px 28px 80px; }
 
+.admin-subnav { background: var(--chrome-raised); display: flex; gap: 4px; padding: 0 max(24px, env(safe-area-inset-left)); }
+.admin-subnav a { align-items: center; color: rgba(255,255,255,.65); display: flex; font-size: 12px; font-weight: 700; gap: 6px; padding: 12px 14px; text-decoration: none; border-bottom: 2px solid transparent; }
+.admin-subnav a:hover { color: var(--on-chrome); }
+.admin-subnav a.active { border-bottom-color: var(--accent-chrome); color: var(--on-chrome); }
+
+.admin-page-head a { color: var(--accent-dark); }
+
 .admin-back-link { align-items: center; color: var(--muted); display: inline-flex; font-size: 12px; font-weight: 700; gap: 6px; margin-bottom: 18px; text-decoration: none; }
 .admin-back-link:hover { color: var(--ink); }
 .admin-page-head h1 { font-size: clamp(24px, 2vw, 30px); font-weight: 700; letter-spacing: -.02em; margin: 8px 0 6px; }
@@ -877,8 +884,25 @@ button:disabled {
 .admin-feature-actions button.active { background: var(--chrome); border-color: var(--chrome); color: var(--on-chrome); }
 .admin-feature-actions button:disabled { opacity: .5; }
 
+.admin-solutions-layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); margin-top: 24px; align-items: start; }
+.admin-solution-form { position: sticky; top: 20px; }
+.admin-solution-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.admin-solution-grid label { display: grid; }
+.admin-solution-full { grid-column: 1 / -1; }
+.admin-solution-checkbox { align-items: center; display: flex !important; flex-direction: row-reverse; gap: 9px; justify-content: flex-end; margin-top: 14px !important; }
+.admin-solution-checkbox input { height: auto; width: auto; }
+.admin-solution-form-actions { align-items: center; display: flex; gap: 10px; }
+.admin-solution-cancel { background: transparent; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 700; height: 42px; margin-top: 20px; padding: 0 16px; }
+
+.admin-solution-list { display: grid; gap: 12px; }
+.admin-solution-row strong { align-items: center; display: flex; gap: 7px; }
+.admin-solution-row .admin-feature-actions { flex-wrap: wrap; }
+
 @media (max-width: 1020px) {
   .admin-feature-row { grid-template-columns: minmax(0, 1fr); }
+  .admin-solutions-layout { grid-template-columns: minmax(0, 1fr); }
+  .admin-solution-form { position: static; }
+  .admin-solution-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

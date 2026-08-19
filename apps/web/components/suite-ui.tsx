@@ -3,21 +3,38 @@
 import Image from "next/image";
 import {
   ArrowRight,
+  BarChart3,
+  Bell,
   Boxes,
+  Database,
   ExternalLink,
+  FileText,
+  Globe,
   Grid2X2,
   LoaderCircle,
   LockKeyhole,
   PanelLeftClose,
   Plus,
+  Settings,
   ShieldCheck,
   Sparkles,
+  Truck,
+  Users,
   X,
 } from "lucide-react";
-import { type Solution, type SolutionId, type ViewerContext, solutions } from "@/lib/suite-data";
+import { type Solution, type SolutionId, type ViewerContext } from "@/lib/suite-data";
 
 export const solutionIcons = {
   boxes: Boxes,
+  chart: BarChart3,
+  users: Users,
+  database: Database,
+  sparkles: Sparkles,
+  bell: Bell,
+  file: FileText,
+  globe: Globe,
+  settings: Settings,
+  truck: Truck,
 };
 
 export function LoadingScreen() {
@@ -116,6 +133,7 @@ export function SolutionCard({
 }
 
 export function ActiveWorkspace({
+  solutions,
   activeSolutions,
   focusedSolution,
   mode,
@@ -123,6 +141,7 @@ export function ActiveWorkspace({
   onClose,
   onMode,
 }: {
+  solutions: Solution[];
   activeSolutions: SolutionId[];
   focusedSolution: SolutionId;
   mode: "focus" | "split";

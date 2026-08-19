@@ -1,11 +1,10 @@
 "use client";
 
-import { solutions } from "@/lib/suite-data";
 import { useSuite } from "@/lib/suite-context";
 import { SolutionCard } from "@/components/suite-ui";
 
 export default function SolucionesPage() {
-  const { organization, activeSolutions, opening, openSolution } = useSuite();
+  const { organization, solutions, activeSolutions, opening, openSolution } = useSuite();
 
   return (
     <section className="solutions-section" id="solutions-section">

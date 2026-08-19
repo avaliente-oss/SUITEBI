@@ -5,19 +5,25 @@ import { SignJWT } from "jose";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const bridgeSecret = process.env.SUITE_BRIDGE_SECRET;
-const erpAppUrl = process.env.ERP_APP_URL;
 
 type AuthorizeDecision = {
   allowed?: boolean;
   reason_code?: string;
 };
 
+type SolutionRow = {
+  id: string;
+  feature_key: string;
+  is_external: boolean;
+  external_url: string | null;
+};
+
 export async function POST(request: NextRequest) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json({ error: "SUPABASE_NOT_CONFIGURED" }, { status: 500 });
   }
-  if (!bridgeSecret || !erpAppUrl) {
-    return NextResponse.json({ error: "ERP_BRIDGE_NOT_CONFIGURED" }, { status: 500 });
+  if (!bridgeSecret) {
+    return NextResponse.json({ error: "BRIDGE_NOT_CONFIGURED" }, { status: 500 });
   }
 
   const authHeader = request.headers.get("authorization") ?? "";
@@ -26,16 +32,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "MISSING_ACCESS_TOKEN" }, { status: 401 });
   }
 
-  let body: { organizationId?: string };
+  let body: { organizationId?: string; solutionId?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
   }
 
-  const organizationId = body.organizationId;
-  if (!organizationId) {
-    return NextResponse.json({ error: "MISSING_ORGANIZATION_ID" }, { status: 400 });
+  const { organizationId, solutionId } = body;
+  if (!organizationId || !solutionId) {
+    return NextResponse.json({ error: "MISSING_ORGANIZATION_OR_SOLUTION" }, { status: 400 });
   }
 
   // Cliente con el token del usuario, no una service key: todo lo que sigue
@@ -50,6 +56,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_SESSION" }, { status: 401 });
   }
 
+  // La solución (feature_key, URL destino) sale del catálogo en base de
+  // datos, no de una constante en el código: así una solución nueva
+  // registrada desde el panel admin funciona sin tocar este archivo.
+  const { data: solutionsList, error: solutionsError } = await userClient.rpc("list_active_solutions");
+  if (solutionsError) {
+    return NextResponse.json({ error: "SOLUTIONS_LOOKUP_FAILED" }, { status: 500 });
+  }
+
+  const solution = ((solutionsList ?? []) as SolutionRow[]).find((item) => item.id === solutionId);
+  if (!solution || !solution.is_external || !solution.external_url) {
+    return NextResponse.json({ error: "SOLUTION_NOT_BRIDGEABLE" }, { status: 404 });
+  }
+
   // Re-verificamos el permiso en el servidor con el mismo motor que usa el
   // frontend: nunca confiamos en lo que el cliente diga sobre su propio acceso.
   const { data: decision, error: decisionError } = await userClient.rpc("authorize_action", {
@@ -57,10 +76,10 @@ export async function POST(request: NextRequest) {
     p_action: "suite.launch",
     p_workspace_id: null,
     p_resource_id: null,
-    p_feature_key: "erp.access",
+    p_feature_key: solution.feature_key,
     p_usage_units: 0,
     p_consume_quota: false,
-    p_metadata: { surface: "erp_bridge" },
+    p_metadata: { surface: "solution_bridge", solution_id: solutionId },
   });
 
   if (decisionError) {
@@ -116,7 +135,8 @@ export async function POST(request: NextRequest) {
     .setAudience("davalsy-erp")
     .sign(secretKey);
 
-  const redirectUrl = `${erpAppUrl.replace(/\/$/, "")}/auth/suite-entry?token=${token}`;
+  const separator = solution.external_url.includes("?") ? "&" : "?";
+  const redirectUrl = `${solution.external_url}${separator}token=${token}`;
 
   return NextResponse.json({ redirectUrl });
 }

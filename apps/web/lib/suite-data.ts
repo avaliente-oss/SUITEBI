@@ -1,4 +1,20 @@
-export type SolutionId = "erp";
+export type SolutionId = string;
+
+/** Íconos curados: deben existir como entrada en solutionIcons (components/suite-ui.tsx). */
+export const SOLUTION_ICON_OPTIONS = [
+  "boxes",
+  "chart",
+  "users",
+  "database",
+  "sparkles",
+  "bell",
+  "file",
+  "globe",
+  "settings",
+  "truck",
+] as const;
+
+export type SolutionIcon = (typeof SOLUTION_ICON_OPTIONS)[number];
 
 export type Solution = {
   id: SolutionId;
@@ -7,9 +23,10 @@ export type Solution = {
   description: string;
   featureKey: string;
   action: string;
-  icon: "boxes";
+  icon: SolutionIcon;
   metric: string;
   metricLabel: string;
+  externalUrl?: string | null;
   /** Apps que viven fuera de la Suite (otro dominio) y se abren vía puente de sesión, no en la mesa activa. */
   external?: boolean;
 };
@@ -33,21 +50,6 @@ export type ViewerContext = {
   avatarUrl: string | null;
   organizations: OrganizationContext[];
 };
-
-export const solutions: Solution[] = [
-  {
-    id: "erp",
-    name: "DavOps ERP",
-    eyebrow: "Operación",
-    description: "Administra inventario, compras y operación conectada a tu organización.",
-    featureKey: "erp.access",
-    action: "erp.access",
-    icon: "boxes",
-    metric: "Conectado",
-    metricLabel: "operación en tiempo real",
-    external: true,
-  },
-];
 
 export const news = [
   {

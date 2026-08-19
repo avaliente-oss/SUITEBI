@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Command, ExternalLink, Sparkles, Zap } from "lucide-react";
-import { news, solutions } from "@/lib/suite-data";
+import { news } from "@/lib/suite-data";
 import { useSuite } from "@/lib/suite-context";
 import { SolutionCard } from "@/components/suite-ui";
 
@@ -11,7 +11,7 @@ const todayLabel = new Date()
   .toUpperCase();
 
 export default function LobbyPage() {
-  const { organization, activeSolutions, opening, availableCount, openSolution, setToast } = useSuite();
+  const { organization, solutions, activeSolutions, opening, availableCount, openSolution, setToast } = useSuite();
 
   return (
     <>

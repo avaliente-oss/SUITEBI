@@ -4,11 +4,19 @@ import { useSuite } from "@/lib/suite-context";
 import { ActiveWorkspace } from "@/components/suite-ui";
 
 export default function MesaActivaPage() {
-  const { activeSolutions, focusedSolution, workspaceMode, setFocusedSolution, closeSolution, setWorkspaceMode } =
-    useSuite();
+  const {
+    solutions,
+    activeSolutions,
+    focusedSolution,
+    workspaceMode,
+    setFocusedSolution,
+    closeSolution,
+    setWorkspaceMode,
+  } = useSuite();
 
   return (
     <ActiveWorkspace
+      solutions={solutions}
       activeSolutions={activeSolutions}
       focusedSolution={focusedSolution}
       mode={workspaceMode}

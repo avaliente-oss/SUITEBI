@@ -142,26 +142,36 @@ export async function requestPasswordReset(client: SupabaseClient, email: string
   if (error) throw error;
 }
 
-export async function requestErpBridgeRedirect(client: SupabaseClient, organizationId: string) {
+export async function requestSolutionBridgeRedirect(
+  client: SupabaseClient,
+  organizationId: string,
+  solutionId: string,
+) {
   const { data: sessionData } = await client.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("No hay una sesión activa.");
 
-  const response = await fetch("/api/erp-bridge", {
+  const response = await fetch("/api/solution-bridge", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ organizationId }),
+    body: JSON.stringify({ organizationId, solutionId }),
   });
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload?.error ?? "No pudimos conectar con DavOps ERP.");
+    throw new Error(payload?.error ?? "No pudimos conectar con esa solución.");
   }
 
   return payload as { redirectUrl: string };
+}
+
+export async function listActiveSolutions(client: SupabaseClient) {
+  const { data, error } = await client.rpc("list_active_solutions");
+  if (error) throw error;
+  return (data ?? []) as import("./suite-data").Solution[];
 }
 
 export type AdminOrganizationSummary = {
@@ -226,6 +236,72 @@ export async function adminClearFeatureOverride(client: SupabaseClient, organiza
     p_organization_id: organizationId,
     p_feature_key: featureKey,
   });
+  if (error) throw error;
+}
+
+export type AdminSolution = {
+  id: string;
+  name: string;
+  eyebrow: string;
+  description: string;
+  icon: string;
+  feature_key: string;
+  action: string;
+  is_external: boolean;
+  external_url: string | null;
+  metric: string;
+  metric_label: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+export async function adminListSolutions(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_solutions");
+  if (error) throw error;
+  return (data ?? []) as AdminSolution[];
+}
+
+export async function adminUpsertSolution(
+  client: SupabaseClient,
+  input: {
+    id: string;
+    name: string;
+    eyebrow: string;
+    description: string;
+    icon: string;
+    featureKey: string;
+    featureName: string;
+    isExternal: boolean;
+    externalUrl: string;
+    metric?: string;
+    metricLabel?: string;
+    sortOrder?: number;
+  },
+) {
+  const { error } = await client.rpc("admin_upsert_solution", {
+    p_id: input.id,
+    p_name: input.name,
+    p_eyebrow: input.eyebrow,
+    p_description: input.description,
+    p_icon: input.icon,
+    p_feature_key: input.featureKey,
+    p_feature_name: input.featureName,
+    p_is_external: input.isExternal,
+    p_external_url: input.externalUrl,
+    p_metric: input.metric ?? "",
+    p_metric_label: input.metricLabel ?? "",
+    p_sort_order: input.sortOrder ?? 100,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetSolutionActive(client: SupabaseClient, id: string, active: boolean) {
+  const { error } = await client.rpc("admin_set_solution_active", { p_id: id, p_active: active });
+  if (error) throw error;
+}
+
+export async function adminDeleteSolution(client: SupabaseClient, id: string) {
+  const { error } = await client.rpc("admin_delete_solution", { p_id: id });
   if (error) throw error;
 }
 

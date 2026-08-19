@@ -2,15 +2,34 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { authorizeSolution, getSupabaseBrowserClient, requestErpBridgeRedirect } from "@/lib/supabase";
 import {
-  solutions,
+  authorizeSolution,
+  getSupabaseBrowserClient,
+  listActiveSolutions,
+  requestSolutionBridgeRedirect,
+} from "@/lib/supabase";
+import {
   type OrganizationContext,
   type Solution,
   type SolutionId,
   type ViewerContext,
 } from "@/lib/suite-data";
 import { useAuth } from "@/lib/auth-context";
+
+const demoSolutions: Solution[] = [
+  {
+    id: "erp",
+    name: "DavOps ERP",
+    eyebrow: "Operación",
+    description: "Administra inventario, compras y operación conectada a tu organización.",
+    featureKey: "erp.access",
+    action: "erp.access",
+    icon: "boxes",
+    metric: "Conectado",
+    metricLabel: "operación en tiempo real",
+    external: true,
+  },
+];
 
 const accessReasons: Record<string, string> = {
   FEATURE_NOT_INCLUDED: "Esta solución no está incluida en el plan actual.",
@@ -26,6 +45,7 @@ type SuiteContextValue = {
   isDemo: boolean;
   organization: OrganizationContext;
   changeOrganization: (id: string) => void;
+  solutions: Solution[];
   activeSolutions: SolutionId[];
   focusedSolution: SolutionId;
   setFocusedSolution: (id: SolutionId) => void;
@@ -54,6 +74,7 @@ export function SuiteProvider({
   const router = useRouter();
   const { signOut } = useAuth();
   const [organizationId, setOrganizationId] = useState(viewer.organizations[0]?.id ?? "");
+  const [solutions, setSolutions] = useState<Solution[]>(isDemo ? demoSolutions : []);
   const [activeSolutions, setActiveSolutions] = useState<SolutionId[]>([]);
   const [focusedSolution, setFocusedSolution] = useState<SolutionId>("erp");
   const [workspaceMode, setWorkspaceMode] = useState<"focus" | "split">("focus");
@@ -68,6 +89,23 @@ export function SuiteProvider({
     const timer = window.setTimeout(() => setToast(""), 4200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    let cancelled = false;
+    listActiveSolutions(supabase)
+      .then((loaded) => {
+        if (!cancelled) setSolutions(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setToast("No pudimos cargar el catálogo de soluciones.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemo]);
 
   function changeOrganization(id: string) {
     setOrganizationId(id);
@@ -99,7 +137,11 @@ export function SuiteProvider({
         }
 
         if (solution.external) {
-          const { redirectUrl } = await requestErpBridgeRedirect(supabase, organization.id);
+          const { redirectUrl } = await requestSolutionBridgeRedirect(
+            supabase,
+            organization.id,
+            solution.id,
+          );
           window.location.href = redirectUrl;
           return;
         }
@@ -142,6 +184,7 @@ export function SuiteProvider({
         isDemo,
         organization,
         changeOrganization,
+        solutions,
         activeSolutions,
         focusedSolution,
         setFocusedSolution,
