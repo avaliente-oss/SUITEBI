@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -41,14 +42,21 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "DAVALSY",
+  },
+  other: {
+    // Next.js sólo emite el meta "mobile-web-app-capable" moderno; Safari
+    // en iOS todavía requiere el prefijo "apple-" para abrir en standalone
+    // (sin barra de navegador) al agregarlo a la pantalla de inicio.
+    "apple-mobile-web-app-capable": "yes",
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F5F6F4" },
     { media: "(prefers-color-scheme: dark)", color: "#0E1111" },
@@ -63,6 +71,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${sora.variable} ${inter.variable}`}>
       <body>
+        <ServiceWorkerRegister />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

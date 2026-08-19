@@ -209,6 +209,8 @@ button:disabled {
   min-height: 100vh;
   overflow: hidden;
   padding: clamp(32px, 4vw, 68px);
+  padding-top: max(clamp(32px, 4vw, 68px), env(safe-area-inset-top));
+  padding-bottom: max(clamp(32px, 4vw, 68px), env(safe-area-inset-bottom));
   position: relative;
 }
 
@@ -497,6 +499,9 @@ button:disabled {
   height: 100vh;
   left: 0;
   padding: 24px 18px 18px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  padding-left: max(18px, env(safe-area-inset-left));
   position: sticky;
   top: 0;
   z-index: 20;
@@ -556,7 +561,7 @@ button:disabled {
 .avatar-image { background-position: center; background-size: cover; height: 100%; width: 100%; }
 
 .suite-main { min-width: 0; }
-.topbar { align-items: center; backdrop-filter: blur(16px); background: color-mix(in srgb, var(--paper) 84%, transparent); border-bottom: 1px solid var(--line); display: flex; height: 70px; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 15; }
+.topbar { align-items: center; backdrop-filter: blur(16px); background: color-mix(in srgb, var(--paper) 84%, transparent); border-bottom: 1px solid var(--line); display: flex; height: calc(70px + env(safe-area-inset-top)); justify-content: space-between; padding: env(safe-area-inset-top) 28px 0; position: sticky; top: 0; z-index: 15; }
 .mobile-menu { display: none; }
 
 .organization-picker { align-items: center; display: flex; gap: 9px; min-width: 220px; position: relative; }
@@ -710,7 +715,7 @@ button:disabled {
 .insight-note small { color: var(--accent-chrome); }
 .insight-note p { color: rgba(255,255,255,.58); font-size: 7px; line-height: 1.55; margin: 5px 0 0; }
 
-.toast { align-items: center; animation: toastIn .3s both; background: var(--chrome); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; bottom: 22px; box-shadow: 0 8px 24px rgba(0,0,0,.2); color: var(--on-chrome); display: flex; font-size: 10px; gap: 9px; left: 50%; max-width: min(90vw, 540px); padding: 10px 12px; position: fixed; transform: translateX(-50%); z-index: 60; }
+.toast { align-items: center; animation: toastIn .3s both; background: var(--chrome); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; bottom: max(22px, calc(env(safe-area-inset-bottom) + 12px)); box-shadow: 0 8px 24px rgba(0,0,0,.2); color: var(--on-chrome); display: flex; font-size: 10px; gap: 9px; left: 50%; max-width: min(90vw, 540px); padding: 10px 12px; position: fixed; transform: translateX(-50%); z-index: 60; }
 .toast > span { align-items: center; background: var(--accent-chrome); border-radius: 7px; color: var(--chrome); display: flex; height: 27px; justify-content: center; width: 27px; }
 .toast button { background: transparent; border: 0; color: rgba(255,255,255,.45); display: flex; margin-left: 7px; padding: 3px; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 15px); } }
@@ -732,7 +737,7 @@ button:disabled {
 
 @media (max-width: 1020px) {
   .suite-shell { grid-template-columns: 76px minmax(0, 1fr); }
-  .sidebar { padding: 22px 12px 16px; }
+  .sidebar { padding: 22px 12px 16px; padding-top: max(22px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   .sidebar .nav-label, .primary-nav button:not(.active) span, .primary-nav a:not(.active) span, .primary-nav button b, .primary-nav a b, .primary-nav button i, .primary-nav a i, .primary-nav button, .primary-nav a { font-size: 0; }
   .sidebar .brand-mark { justify-content: center; width: 100%; }
   .sidebar .brand-logo-full { display: none; }
@@ -750,7 +755,7 @@ button:disabled {
 @media (max-width: 760px) {
   .login-shell { display: block; }
   .login-story { display: none; }
-  .login-access { min-height: 100vh; padding: 32px 23px; }
+  .login-access { min-height: 100vh; padding: 32px 23px; padding-top: max(32px, env(safe-area-inset-top)); padding-bottom: max(32px, env(safe-area-inset-bottom)); }
   .mobile-brand { display: block; margin-bottom: 55px; }
   .login-card { max-width: 470px; }
 
@@ -765,7 +770,7 @@ button:disabled {
   .sidebar-profile { display: grid; }
   .sidebar-profile > div, .sidebar-profile button { display: block; }
   .close-mobile { background: transparent; border: 0; color: var(--on-chrome); display: flex; padding: 5px; }
-  .topbar { height: 62px; padding: 0 15px; }
+  .topbar { height: calc(62px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 15px 0; }
   .mobile-menu { background: transparent; border: 0; display: flex; margin-right: 9px; padding: 5px; }
   .organization-picker { min-width: 0; }
   .organization-picker div { max-width: 130px; }
