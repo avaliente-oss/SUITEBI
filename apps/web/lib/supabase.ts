@@ -157,6 +157,71 @@ export async function requestErpBridgeRedirect(client: SupabaseClient, organizat
   return payload as { redirectUrl: string };
 }
 
+export type AdminOrganizationSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan_id: string;
+  plan_name: string;
+  access_status: string;
+  member_count: number;
+  override_count: number;
+};
+
+export type AdminOrganizationFeature = {
+  key: string;
+  name: string;
+  description: string | null;
+  plan_enabled: boolean;
+  override_enabled: boolean | null;
+  effective: boolean;
+};
+
+export async function checkPlatformAdmin(client: SupabaseClient) {
+  const { data, error } = await client.rpc("am_i_platform_admin");
+  if (error) return false;
+  return Boolean(data);
+}
+
+export async function adminListOrganizations(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_organizations");
+  if (error) throw error;
+  return (data ?? []) as AdminOrganizationSummary[];
+}
+
+export async function adminGetOrganizationFeatures(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("admin_get_organization_features", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw error;
+  return (data ?? []) as AdminOrganizationFeature[];
+}
+
+export async function adminSetFeatureOverride(
+  client: SupabaseClient,
+  organizationId: string,
+  featureKey: string,
+  enabled: boolean,
+  note?: string,
+) {
+  const { error } = await client.rpc("admin_set_feature_override", {
+    p_organization_id: organizationId,
+    p_feature_key: featureKey,
+    p_enabled: enabled,
+    p_note: note ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function adminClearFeatureOverride(client: SupabaseClient, organizationId: string, featureKey: string) {
+  const { error } = await client.rpc("admin_clear_feature_override", {
+    p_organization_id: organizationId,
+    p_feature_key: featureKey,
+  });
+  if (error) throw error;
+}
+
 export async function authorizeSolution(
   client: SupabaseClient,
   organizationId: string,

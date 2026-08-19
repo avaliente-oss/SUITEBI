@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
+  checkPlatformAdmin,
   completePendingOrganizationSetup,
   getSupabaseBrowserClient,
   isSupabaseConfigured,
@@ -16,6 +17,7 @@ type AuthContextValue = {
   viewer: ViewerContext | null;
   authError: string;
   isDemo: boolean;
+  isPlatformAdmin: boolean;
   refreshViewer: () => Promise<void>;
   enterDemo: () => void;
   signOut: () => Promise<void>;
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [viewer, setViewer] = useState<ViewerContext | null>(null);
   const [authError, setAuthError] = useState("");
   const [isDemo, setIsDemo] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const supabase = getSupabaseBrowserClient();
 
   useEffect(() => {
@@ -38,9 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hydrate = async () => {
       try {
         await completePendingOrganizationSetup(supabase);
-        const context = await loadViewerContext(supabase);
+        const [context, adminStatus] = await Promise.all([
+          loadViewerContext(supabase),
+          checkPlatformAdmin(supabase),
+        ]);
         if (!active) return;
         setViewer(context);
+        setIsPlatformAdmin(adminStatus);
         setPhase("signed_in");
         setAuthError("");
       } catch (error) {
@@ -80,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setViewer(await loadViewerContext(supabase));
       setPhase("signed_in");
       setAuthError("");
+      setIsPlatformAdmin(await checkPlatformAdmin(supabase));
     } catch (error) {
       setPhase("signed_out");
       setAuthError(error instanceof Error ? error.message : "No pudimos cargar tu cuenta.");
@@ -89,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function enterDemo() {
     setViewer(demoViewer);
     setIsDemo(true);
+    setIsPlatformAdmin(false);
     setPhase("signed_in");
   }
 
@@ -96,11 +105,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isDemo && supabase) await supabase.auth.signOut();
     setViewer(null);
     setIsDemo(false);
+    setIsPlatformAdmin(false);
     setPhase("signed_out");
   }
 
   return (
-    <AuthContext.Provider value={{ phase, viewer, authError, isDemo, refreshViewer, enterDemo, signOut }}>
+    <AuthContext.Provider
+      value={{ phase, viewer, authError, isDemo, isPlatformAdmin, refreshViewer, enterDemo, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

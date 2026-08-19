@@ -19,10 +19,12 @@ import {
   MessageSquareText,
   Search,
   ShieldCheck,
+  ShieldUser,
   User,
   X,
 } from "lucide-react";
 import { formatRole } from "@/lib/suite-data";
+import { useAuth } from "@/lib/auth-context";
 import { useSuite } from "@/lib/suite-context";
 import { Avatar, BrandMark } from "@/components/suite-ui";
 
@@ -55,6 +57,7 @@ export function SuiteShell({ children }: { children: ReactNode }) {
     setToast,
     signOut,
   } = useSuite();
+  const { isPlatformAdmin } = useAuth();
   const [mobileNav, setMobileNav] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -111,6 +114,15 @@ export function SuiteShell({ children }: { children: ReactNode }) {
           <button><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
           <button><BookOpen size={18} /> Recursos</button>
           <button><ShieldCheck size={18} /> Equipo y accesos</button>
+
+          {isPlatformAdmin && (
+            <>
+              <span className="nav-label second">DAVALSY</span>
+              <Link href="/admin" className={pathname.startsWith("/admin") ? "active" : ""}>
+                <ShieldUser size={18} /> Panel admin
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="sidebar-support">

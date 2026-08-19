@@ -841,6 +841,48 @@ button:disabled {
   .plans-compare-label { font-weight: 700; }
 }
 
+/* Panel admin DAVALSY (cross-tenant, fuera del shell de cliente) */
+.admin-shell { background: var(--paper); min-height: 100vh; }
+.admin-topbar { align-items: center; background: var(--chrome); color: var(--on-chrome); display: flex; gap: 16px; padding: 16px max(24px, env(safe-area-inset-left)) 16px max(24px, env(safe-area-inset-left)); padding-top: max(16px, env(safe-area-inset-top)); }
+.admin-topbar .brand-mark { background: var(--on-chrome); border-radius: 8px; padding: 5px 7px; }
+.admin-badge { align-items: center; background: rgba(57,160,165,.18); border-radius: 99px; color: var(--accent-chrome); display: flex; font-size: 11px; font-weight: 700; gap: 6px; padding: 6px 11px; }
+.admin-back { align-items: center; color: rgba(255,255,255,.7); display: flex; font-size: 12px; font-weight: 700; gap: 6px; margin-left: auto; text-decoration: none; }
+.admin-back:hover { color: var(--on-chrome); }
+.admin-content { margin: 0 auto; max-width: 1100px; padding: 36px 28px 80px; }
+
+.admin-back-link { align-items: center; color: var(--muted); display: inline-flex; font-size: 12px; font-weight: 700; gap: 6px; margin-bottom: 18px; text-decoration: none; }
+.admin-back-link:hover { color: var(--ink); }
+.admin-page-head h1 { font-size: clamp(24px, 2vw, 30px); font-weight: 700; letter-spacing: -.02em; margin: 8px 0 6px; }
+.admin-page-head p { color: var(--muted); font-size: 13px; margin: 0; }
+.admin-loading { color: var(--muted); font-size: 13px; margin-top: 20px; }
+
+.admin-table { background: var(--white); border: 1px solid var(--line); border-radius: 12px; margin-top: 24px; overflow-x: auto; }
+.admin-table-head, .admin-table-row { align-items: center; display: grid; gap: 12px; grid-template-columns: 2fr 1fr 1fr .7fr 1fr 24px; min-width: 640px; padding: 14px 20px; }
+.admin-table-head { border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.admin-table-row { border-bottom: 1px solid var(--line-subtle); color: var(--ink); font-size: 13px; text-decoration: none; transition: background .15s; }
+.admin-table-row:last-child { border-bottom: 0; }
+.admin-table-row:hover { background: var(--paper); }
+.admin-org-name { align-items: center; color: var(--ink); display: flex; font-weight: 600; gap: 8px; }
+.admin-row-arrow { color: var(--muted); justify-self: end; }
+
+.admin-feature-list { display: grid; gap: 12px; margin-top: 24px; }
+.admin-feature-row { align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 16px; grid-template-columns: 1.6fr 1.4fr auto; padding: 16px 18px; }
+.admin-feature-row strong { font-size: 14px; }
+.admin-feature-key { color: var(--muted); font-family: monospace; font-size: 11px; margin-left: 8px; }
+.admin-feature-row p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 4px 0 0; }
+.admin-feature-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-feature-status .status-chip { background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--muted); }
+.admin-feature-status .status-full { background: rgba(99,169,45,.16); color: var(--success-text); }
+.admin-feature-status .status-trial { background: rgba(230,57,70,.12); color: var(--danger-text); }
+.admin-feature-actions { display: flex; gap: 6px; }
+.admin-feature-actions button { align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: 7px; color: var(--muted); display: flex; font-size: 11px; font-weight: 700; gap: 5px; height: 32px; padding: 0 10px; }
+.admin-feature-actions button.active { background: var(--chrome); border-color: var(--chrome); color: var(--on-chrome); }
+.admin-feature-actions button:disabled { opacity: .5; }
+
+@media (max-width: 1020px) {
+  .admin-feature-row { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
