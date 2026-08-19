@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -38,6 +38,21 @@ export const metadata: Metadata = {
     shortcut: "/davalsy-icon.png",
     apple: "/davalsy-icon.png",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DAVALSY",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F5F6F4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E1111" },
+  ],
 };
 
 export default function RootLayout({
