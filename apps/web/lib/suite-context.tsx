@@ -54,8 +54,8 @@ export function SuiteProvider({
   const router = useRouter();
   const { signOut } = useAuth();
   const [organizationId, setOrganizationId] = useState(viewer.organizations[0]?.id ?? "");
-  const [activeSolutions, setActiveSolutions] = useState<SolutionId[]>(["command"]);
-  const [focusedSolution, setFocusedSolution] = useState<SolutionId>("command");
+  const [activeSolutions, setActiveSolutions] = useState<SolutionId[]>([]);
+  const [focusedSolution, setFocusedSolution] = useState<SolutionId>("erp");
   const [workspaceMode, setWorkspaceMode] = useState<"focus" | "split">("focus");
   const [toast, setToast] = useState("");
   const [opening, setOpening] = useState<SolutionId | null>(null);

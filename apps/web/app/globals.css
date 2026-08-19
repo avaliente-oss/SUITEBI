@@ -798,6 +798,49 @@ button:disabled {
   .insight-note { grid-column: auto; }
 }
 
+/* Cuenta / configuración */
+.settings-grid { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 28px; }
+.settings-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.settings-card-head { align-items: center; display: flex; gap: 12px; margin-bottom: 20px; }
+.settings-icon { align-items: center; background: var(--accent-soft); border-radius: 9px; color: var(--accent-dark); display: flex; height: 38px; justify-content: center; width: 38px; flex: 0 0 auto; }
+.settings-card-head h2 { font-size: 16px; margin: 0; }
+.settings-card-head p { color: var(--muted); font-size: 12px; margin: 3px 0 0; }
+.settings-form { display: grid; }
+.settings-form label { font-size: 11px; font-weight: 700; letter-spacing: .02em; margin: 14px 0 7px; }
+.settings-form label:first-child { margin-top: 0; }
+.settings-form input { background: var(--white); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; height: 42px; padding: 0 13px; width: 100%; }
+.settings-form input:focus-visible { border-color: var(--accent-dark); }
+.settings-form input:disabled { color: var(--muted); opacity: .75; }
+.settings-submit { align-self: start; margin-top: 20px; padding: 0 20px; width: auto; }
+
+/* Plan y facturación */
+.plans-compare { background: var(--white); border: 1px solid var(--line); border-radius: 12px; margin-top: 28px; overflow-x: auto; padding: 22px; }
+.plans-compare-head, .plans-compare-row { align-items: center; display: grid; gap: 16px; grid-template-columns: 1.4fr repeat(3, minmax(160px, 1fr)); }
+.plans-compare-head { border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+.plans-compare-col-head { display: grid; gap: 4px; }
+.plans-compare-col-head strong { font-size: 15px; }
+.plans-compare-col-head span { color: var(--accent-dark); font-size: 11px; font-weight: 700; }
+.plans-compare-col-head p { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 4px 0 10px; min-height: 32px; }
+.plans-compare-col-head button { background: var(--chrome); border: 0; border-radius: 8px; color: var(--on-chrome); font-size: 11px; font-weight: 700; height: 36px; width: fit-content; padding: 0 14px; }
+.plans-compare-col-head .included-chip { width: fit-content; }
+.plans-compare-row { border-bottom: 1px solid var(--line-subtle); padding: 14px 0; }
+.plans-compare-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.plans-compare-label { color: var(--ink); font-size: 13px; font-weight: 600; }
+.plans-compare-value { color: var(--muted); font-size: 13px; }
+.plans-yes { color: var(--success-text); }
+.plans-no { color: var(--muted-2); }
+.plans-footnote { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 18px 0 0; max-width: 640px; }
+
+@media (max-width: 1020px) {
+  .settings-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .plans-compare-head, .plans-compare-row { grid-template-columns: 1fr; }
+  .plans-compare-row { display: grid; gap: 6px; }
+  .plans-compare-label { font-weight: 700; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }

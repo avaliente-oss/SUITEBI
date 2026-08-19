@@ -3,13 +3,8 @@
 import Image from "next/image";
 import {
   ArrowRight,
-  BarChart3,
-  Bell,
   Boxes,
-  Code2,
-  Database,
   ExternalLink,
-  FileBarChart,
   Grid2X2,
   LoaderCircle,
   LockKeyhole,
@@ -22,12 +17,6 @@ import {
 import { type Solution, type SolutionId, type ViewerContext, solutions } from "@/lib/suite-data";
 
 export const solutionIcons = {
-  chart: BarChart3,
-  database: Database,
-  sparkles: Sparkles,
-  bell: Bell,
-  file: FileBarChart,
-  code: Code2,
   boxes: Boxes,
 };
 
@@ -184,7 +173,7 @@ export function ActiveWorkspace({
 
 export function SolutionWorkspace({ solution }: { solution: Solution }) {
   const Icon = solutionIcons[solution.icon];
-  const bars = solution.id === "forecast" ? [34, 48, 43, 58, 61, 72, 78, 86] : [41, 55, 49, 64, 60, 74, 68, 88];
+  const bars = [41, 55, 49, 64, 60, 74, 68, 88];
 
   return (
     <article className="workspace-app">

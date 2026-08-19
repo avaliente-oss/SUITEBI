@@ -125,6 +125,16 @@ export async function signUpWithOrganization(
   return { needsEmailConfirmation: true };
 }
 
+export async function updateFullName(client: SupabaseClient, fullName: string) {
+  const { error } = await client.auth.updateUser({ data: { full_name: fullName } });
+  if (error) throw error;
+}
+
+export async function updatePassword(client: SupabaseClient, password: string) {
+  const { error } = await client.auth.updateUser({ password });
+  if (error) throw error;
+}
+
 export async function requestErpBridgeRedirect(client: SupabaseClient, organizationId: string) {
   const { data: sessionData } = await client.auth.getSession();
   const accessToken = sessionData.session?.access_token;

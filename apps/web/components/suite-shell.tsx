@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  CreditCard,
   GalleryHorizontalEnd,
   Headphones,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import {
   MessageSquareText,
   Search,
   ShieldCheck,
+  User,
   X,
 } from "lucide-react";
 import { formatRole } from "@/lib/suite-data";
@@ -25,7 +27,7 @@ import { useSuite } from "@/lib/suite-context";
 import { Avatar, BrandMark } from "@/components/suite-ui";
 
 type NavItem = {
-  href: "/lobby" | "/mesa-activa" | "/soluciones";
+  href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan";
   label: string;
   icon: typeof LayoutDashboard;
   shortcut?: string;
@@ -35,6 +37,11 @@ const navItems: NavItem[] = [
   { href: "/lobby", label: "Lobby", icon: LayoutDashboard, shortcut: "⌘1" },
   { href: "/mesa-activa", label: "Mesa activa", icon: GalleryHorizontalEnd },
   { href: "/soluciones", label: "Todas las soluciones", icon: Blocks },
+];
+
+const accountNavItems: NavItem[] = [
+  { href: "/cuenta", label: "Mi cuenta", icon: User },
+  { href: "/plan", label: "Plan y facturación", icon: CreditCard },
 ];
 
 export function SuiteShell({ children }: { children: ReactNode }) {
@@ -84,6 +91,22 @@ export function SuiteShell({ children }: { children: ReactNode }) {
             );
           })}
 
+          <span className="nav-label second">CUENTA</span>
+          {accountNavItems.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "active" : ""}
+                onClick={() => setMobileNav(false)}
+              >
+                <Icon size={18} /> {item.label}
+              </Link>
+            );
+          })}
+
           <span className="nav-label second">ORGANIZACIÓN</span>
           <button><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
           <button><BookOpen size={18} /> Recursos</button>
@@ -125,7 +148,9 @@ export function SuiteShell({ children }: { children: ReactNode }) {
           <div className="topbar-actions">
             {isDemo && <span className="demo-badge">MODO DEMO</span>}
             <button aria-label="Notificaciones" className="icon-button"><Bell size={19} /><i /></button>
-            <Avatar viewer={viewer} small />
+            <Link href="/cuenta" aria-label="Mi cuenta">
+              <Avatar viewer={viewer} small />
+            </Link>
           </div>
         </header>
 

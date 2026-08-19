@@ -1,11 +1,4 @@
-export type SolutionId =
-  | "command"
-  | "connect"
-  | "forecast"
-  | "alerts"
-  | "exports"
-  | "developer"
-  | "erp";
+export type SolutionId = "erp";
 
 export type Solution = {
   id: SolutionId;
@@ -14,7 +7,7 @@ export type Solution = {
   description: string;
   featureKey: string;
   action: string;
-  icon: "chart" | "database" | "sparkles" | "bell" | "file" | "code" | "boxes";
+  icon: "boxes";
   metric: string;
   metricLabel: string;
   /** Apps que viven fuera de la Suite (otro dominio) y se abren vía puente de sesión, no en la mesa activa. */
@@ -42,72 +35,6 @@ export type ViewerContext = {
 };
 
 export const solutions: Solution[] = [
-  {
-    id: "command",
-    name: "Command Center",
-    eyebrow: "Business intelligence",
-    description: "KPIs, tableros ejecutivos y señales críticas en una sola vista.",
-    featureKey: "core.read",
-    action: "dashboard.view",
-    icon: "chart",
-    metric: "+18.4%",
-    metricLabel: "rendimiento mensual",
-  },
-  {
-    id: "connect",
-    name: "Data Connect",
-    eyebrow: "Integraciones",
-    description: "Conecta, supervisa y refresca tus fuentes de datos operativas.",
-    featureKey: "data_sources",
-    action: "data_sources.connect",
-    icon: "database",
-    metric: "8/10",
-    metricLabel: "fuentes conectadas",
-  },
-  {
-    id: "forecast",
-    name: "Forecast AI",
-    eyebrow: "Inteligencia aumentada",
-    description: "Detecta tendencias, riesgos y oportunidades antes de que ocurran.",
-    featureKey: "ai.analysis",
-    action: "ai.use",
-    icon: "sparkles",
-    metric: "87%",
-    metricLabel: "confianza del modelo",
-  },
-  {
-    id: "alerts",
-    name: "Signal Desk",
-    eyebrow: "Monitoreo",
-    description: "Automatiza alertas y responde rápido a cambios importantes.",
-    featureKey: "alerts",
-    action: "alerts.manage",
-    icon: "bell",
-    metric: "3",
-    metricLabel: "señales abiertas",
-  },
-  {
-    id: "exports",
-    name: "Report Studio",
-    eyebrow: "Distribución",
-    description: "Prepara y comparte entregables claros con cada equipo.",
-    featureKey: "dashboard.export",
-    action: "report.export",
-    icon: "file",
-    metric: "24",
-    metricLabel: "reportes este mes",
-  },
-  {
-    id: "developer",
-    name: "Developer Hub",
-    eyebrow: "Automatización",
-    description: "Opera la suite desde tus sistemas con acceso seguro a la API.",
-    featureKey: "api.access",
-    action: "api.use",
-    icon: "code",
-    metric: "99.98%",
-    metricLabel: "disponibilidad API",
-  },
   {
     id: "erp",
     name: "DavOps ERP",
