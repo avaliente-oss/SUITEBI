@@ -11,6 +11,7 @@ import {
 import {
   getSupabaseBrowserClient,
   isSupabaseConfigured,
+  requestPasswordReset,
   signUpWithOrganization,
 } from "@/lib/supabase";
 import { BrandMark } from "@/components/suite-ui";
@@ -37,6 +38,7 @@ export function LoginScreen({
   const [organizationName, setOrganizationName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
   const submitLockRef = useRef(false);
 
   function switchScreen(next: "login" | "signup") {
@@ -77,6 +79,30 @@ export function LoginScreen({
     } finally {
       setBusy(false);
       submitLockRef.current = false;
+    }
+  }
+
+  async function submitForgotPassword() {
+    if (!supabase || forgotBusy) return;
+
+    setFormError("");
+    setMessage("");
+
+    if (!email.trim()) {
+      setFormError("Escribe tu correo arriba y dale clic de nuevo a \"¿La olvidaste?\".");
+      return;
+    }
+
+    setForgotBusy(true);
+    try {
+      await requestPasswordReset(supabase, email.trim());
+      setMessage("Si ese correo tiene cuenta, te enviamos un enlace para restablecer tu contraseña.");
+    } catch (resetError) {
+      setFormError(
+        resetError instanceof Error ? resetError.message : "No pudimos enviar el enlace de recuperación.",
+      );
+    } finally {
+      setForgotBusy(false);
     }
   }
 
@@ -224,7 +250,9 @@ export function LoginScreen({
                   <>
                     <div className="label-row">
                       <label htmlFor="password">Contraseña</label>
-                      <button type="button" className="text-action">¿La olvidaste?</button>
+                      <button type="button" className="text-action" onClick={submitForgotPassword} disabled={forgotBusy}>
+                        {forgotBusy ? "Enviando..." : "¿La olvidaste?"}
+                      </button>
                     </div>
                     <input
                       id="password"

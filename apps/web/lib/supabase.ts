@@ -135,6 +135,13 @@ export async function updatePassword(client: SupabaseClient, password: string) {
   if (error) throw error;
 }
 
+export async function requestPasswordReset(client: SupabaseClient, email: string) {
+  const redirectTo =
+    typeof window !== "undefined" ? `${window.location.origin}/restablecer-contrasena` : undefined;
+  const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw error;
+}
+
 export async function requestErpBridgeRedirect(client: SupabaseClient, organizationId: string) {
   const { data: sessionData } = await client.auth.getSession();
   const accessToken = sessionData.session?.access_token;
