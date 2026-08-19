@@ -15,7 +15,6 @@ export type Solution = {
   featureKey: string;
   action: string;
   icon: "chart" | "database" | "sparkles" | "bell" | "file" | "code" | "boxes";
-  accent: "cyan" | "coral" | "lime" | "amber" | "blue" | "ink" | "violet";
   metric: string;
   metricLabel: string;
   /** Apps que viven fuera de la Suite (otro dominio) y se abren vía puente de sesión, no en la mesa activa. */
@@ -51,7 +50,6 @@ export const solutions: Solution[] = [
     featureKey: "core.read",
     action: "dashboard.view",
     icon: "chart",
-    accent: "cyan",
     metric: "+18.4%",
     metricLabel: "rendimiento mensual",
   },
@@ -63,7 +61,6 @@ export const solutions: Solution[] = [
     featureKey: "data_sources",
     action: "data_sources.connect",
     icon: "database",
-    accent: "coral",
     metric: "8/10",
     metricLabel: "fuentes conectadas",
   },
@@ -75,7 +72,6 @@ export const solutions: Solution[] = [
     featureKey: "ai.analysis",
     action: "ai.use",
     icon: "sparkles",
-    accent: "lime",
     metric: "87%",
     metricLabel: "confianza del modelo",
   },
@@ -87,7 +83,6 @@ export const solutions: Solution[] = [
     featureKey: "alerts",
     action: "alerts.manage",
     icon: "bell",
-    accent: "amber",
     metric: "3",
     metricLabel: "señales abiertas",
   },
@@ -99,7 +94,6 @@ export const solutions: Solution[] = [
     featureKey: "dashboard.export",
     action: "report.export",
     icon: "file",
-    accent: "blue",
     metric: "24",
     metricLabel: "reportes este mes",
   },
@@ -111,7 +105,6 @@ export const solutions: Solution[] = [
     featureKey: "api.access",
     action: "api.use",
     icon: "code",
-    accent: "ink",
     metric: "99.98%",
     metricLabel: "disponibilidad API",
   },
@@ -123,7 +116,6 @@ export const solutions: Solution[] = [
     featureKey: "erp.access",
     action: "erp.access",
     icon: "boxes",
-    accent: "violet",
     metric: "Conectado",
     metricLabel: "operación en tiempo real",
     external: true,

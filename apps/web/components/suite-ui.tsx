@@ -109,7 +109,7 @@ export function SolutionCard({
   const Icon = solutionIcons[solution.icon];
 
   return (
-    <article className={`solution-card accent-${solution.accent} ${!enabled ? "is-locked" : ""}`} style={{ animationDelay: `${index * 70}ms` }}>
+    <article className={`solution-card ${!enabled ? "is-locked" : ""}`} style={{ animationDelay: `${index * 70}ms` }}>
       <div className="solution-card-top">
         <span className="solution-icon"><Icon size={22} /></span>
         {open ? <span className="open-chip"><i /> ABIERTA</span> : enabled ? <span className="included-chip">INCLUIDA</span> : <span className="locked-chip"><LockKeyhole size={12} /> BLOQUEADA</span>}
@@ -187,7 +187,7 @@ export function SolutionWorkspace({ solution }: { solution: Solution }) {
   const bars = solution.id === "forecast" ? [34, 48, 43, 58, 61, 72, 78, 86] : [41, 55, 49, 64, 60, 74, 68, 88];
 
   return (
-    <article className={`workspace-app accent-${solution.accent}`}>
+    <article className="workspace-app">
       <header><div><span><Icon size={18} /></span><div><small>{solution.eyebrow}</small><strong>{solution.name}</strong></div></div><button><ExternalLink size={15} /> Pantalla completa</button></header>
       <div className="workspace-app-body">
         <div className="mini-kpis">
