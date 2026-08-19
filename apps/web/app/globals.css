@@ -594,9 +594,9 @@ button:disabled {
 .status-chip { border-radius: 99px; font-size: 8px; font-weight: 800; padding: 5px 8px; }
 .status-full { background: rgba(99,169,45,.18); color: var(--success-text); }
 .status-trial { background: rgba(244,124,32,.16); color: var(--warning-text); }
-.plan-card button { background: transparent; border: 0; color: var(--accent-dark); font-size: 9px; font-weight: 800; margin-left: auto; }
+.plan-card button, .plan-card a { background: transparent; border: 0; color: var(--accent-dark); font-size: 9px; font-weight: 800; margin-left: auto; text-decoration: none; }
 
-.pulse-strip { align-items: center; background: var(--chrome); border-radius: 12px; color: var(--on-chrome); display: grid; gap: 0; grid-template-columns: 1.4fr .7fr 1fr .8fr auto; margin-top: 29px; min-height: 76px; overflow: hidden; padding: 0 18px; position: relative; }
+.pulse-strip { align-items: center; background: var(--chrome); border-radius: 12px; color: var(--on-chrome); display: grid; gap: 0; grid-template-columns: 1.4fr 1fr 1fr auto; margin-top: 29px; min-height: 76px; overflow: hidden; padding: 0 18px; position: relative; }
 .pulse-strip::after { background: var(--accent-chrome); content: ""; height: 130px; opacity: .1; position: absolute; right: 80px; top: -70px; transform: rotate(36deg); width: 60px; }
 .pulse-intro { align-items: center; display: flex; gap: 10px; }
 .pulse-intro > span { align-items: center; background: rgba(57, 160, 165,.18); border-radius: 9px; color: var(--accent-chrome); display: flex; height: 37px; justify-content: center; width: 37px; }
@@ -729,8 +729,6 @@ button:disabled {
 
 @media (max-width: 1240px) {
   .solution-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pulse-strip { grid-template-columns: 1.3fr .8fr 1fr auto; }
-  .pulse-stat:nth-of-type(3) { display: none; }
   .workspace-app-body { grid-template-columns: 125px 1fr; }
   .insight-note { grid-column: 1 / -1; }
 }
@@ -784,7 +782,7 @@ button:disabled {
   .pulse-strip { gap: 16px; grid-template-columns: 1fr 1fr; padding: 16px; }
   .pulse-intro { grid-column: 1 / -1; }
   .pulse-stat { padding-left: 14px; }
-  .pulse-strip > button, .pulse-stat:nth-of-type(2) { display: none; }
+  .pulse-strip > button { display: none; }
   .dashboard-grid { margin-top: 27px; }
   .solution-grid { grid-template-columns: 1fr; }
   .solution-card { min-height: 285px; }

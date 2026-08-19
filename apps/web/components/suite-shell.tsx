@@ -67,6 +67,10 @@ export function SuiteShell({ children }: { children: ReactNode }) {
     router.replace("/");
   }
 
+  function notReady(label: string) {
+    setToast(`${label} todavía no está disponible. Lo estamos construyendo.`);
+  }
+
   return (
     <main className="suite-shell">
       <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
@@ -111,9 +115,9 @@ export function SuiteShell({ children }: { children: ReactNode }) {
           })}
 
           <span className="nav-label second">ORGANIZACIÓN</span>
-          <button><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
-          <button><BookOpen size={18} /> Recursos</button>
-          <button><ShieldCheck size={18} /> Equipo y accesos</button>
+          <button onClick={() => notReady("Noticias DAVALSY")}><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
+          <button onClick={() => notReady("Recursos")}><BookOpen size={18} /> Recursos</button>
+          <button onClick={() => notReady("Invitar y administrar equipo")}><ShieldCheck size={18} /> Equipo y accesos</button>
 
           {isPlatformAdmin && (
             <>
@@ -126,8 +130,8 @@ export function SuiteShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="sidebar-support">
-          <button><Headphones size={17} /> Centro de ayuda</button>
-          <button><CircleHelp size={17} /> Hablar con DAVALSY</button>
+          <button onClick={() => notReady("El centro de ayuda")}><Headphones size={17} /> Centro de ayuda</button>
+          <button onClick={() => notReady("El chat con DAVALSY")}><CircleHelp size={17} /> Hablar con DAVALSY</button>
         </div>
 
         <div className="sidebar-profile">
@@ -155,11 +159,19 @@ export function SuiteShell({ children }: { children: ReactNode }) {
             <ChevronDown size={16} />
           </div>
 
-          <button className="command-search"><Search size={17} /><span>Buscar en la suite</span><kbd>⌘ K</kbd></button>
+          <button className="command-search" onClick={() => notReady("El buscador de la suite")}>
+            <Search size={17} /><span>Buscar en la suite</span><kbd>⌘ K</kbd>
+          </button>
 
           <div className="topbar-actions">
             {isDemo && <span className="demo-badge">MODO DEMO</span>}
-            <button aria-label="Notificaciones" className="icon-button"><Bell size={19} /><i /></button>
+            <button
+              aria-label="Notificaciones"
+              className="icon-button"
+              onClick={() => notReady("El centro de notificaciones")}
+            >
+              <Bell size={19} /><i />
+            </button>
             <Link href="/cuenta" aria-label="Mi cuenta">
               <Avatar viewer={viewer} small />
             </Link>

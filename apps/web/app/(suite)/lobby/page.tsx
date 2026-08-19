@@ -6,14 +6,18 @@ import { news, solutions } from "@/lib/suite-data";
 import { useSuite } from "@/lib/suite-context";
 import { SolutionCard } from "@/components/suite-ui";
 
+const todayLabel = new Date()
+  .toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
+  .toUpperCase();
+
 export default function LobbyPage() {
-  const { organization, activeSolutions, opening, availableCount, openSolution } = useSuite();
+  const { organization, activeSolutions, opening, availableCount, openSolution, setToast } = useSuite();
 
   return (
     <>
       <section className="welcome-row" id="welcome-row">
         <div>
-          <span className="today-label"><i /> VIERNES · 15 AGOSTO</span>
+          <span className="today-label"><i /> {todayLabel}</span>
           <h1>Tu negocio está en movimiento.</h1>
           <p>Estas son las soluciones listas para trabajar contigo hoy.</p>
         </div>
@@ -21,16 +25,17 @@ export default function LobbyPage() {
           <span className="plan-icon"><Zap size={17} /></span>
           <div><small>PLAN ACTUAL</small><strong>{organization.planName}</strong></div>
           <span className={`status-chip status-${organization.accessStatus}`}>{organization.accessStatus === "trial" ? "Prueba" : "Activo"}</span>
-          <button>Administrar</button>
+          <Link href="/plan">Administrar</Link>
         </div>
       </section>
 
       <section className="pulse-strip">
         <div className="pulse-intro"><span><Command size={17} /></span><div><small>PULSO DAVALSY</small><strong>Todo bajo control</strong></div></div>
         <div className="pulse-stat"><small>SOLUCIONES ACTIVAS</small><strong>{availableCount}<span> / {solutions.length}</span></strong></div>
-        <div className="pulse-stat"><small>ÚLTIMA ACTUALIZACIÓN</small><strong>Hace 8 min</strong></div>
         <div className="pulse-stat positive"><small>ESTADO DE DATOS</small><strong><i /> Saludable</strong></div>
-        <button><ExternalLink size={15} /> Ver actividad</button>
+        <button onClick={() => setToast("El registro de actividad todavía no está disponible.")}>
+          <ExternalLink size={15} /> Ver actividad
+        </button>
       </section>
 
       <div className="dashboard-grid">
@@ -57,11 +62,23 @@ export default function LobbyPage() {
         <aside className="news-panel">
           <div className="section-heading compact">
             <div><span className="section-kicker">AL DÍA</span><h2>Noticias DAVALSY</h2></div>
-            <button aria-label="Ver todas las noticias"><ArrowRight size={17} /></button>
+            <button
+              aria-label="Ver todas las noticias"
+              onClick={() => setToast("El listado completo de noticias todavía no está disponible.")}
+            >
+              <ArrowRight size={17} />
+            </button>
           </div>
           <article className="featured-news">
             <div className="news-visual"><span>NUEVO</span><Sparkles size={31} /><b>AI</b></div>
-            <div className="news-copy"><span>DESTACADO · 3 MIN</span><h3>La inteligencia que explica, no sólo predice.</h3><p>Conoce la nueva generación de análisis DAVALSY.</p><button>Descubrir más <ArrowRight size={15} /></button></div>
+            <div className="news-copy">
+              <span>DESTACADO · 3 MIN</span>
+              <h3>La inteligencia que explica, no sólo predice.</h3>
+              <p>Conoce la nueva generación de análisis DAVALSY.</p>
+              <button onClick={() => setToast("Esta nota todavía no está publicada.")}>
+                Descubrir más <ArrowRight size={15} />
+              </button>
+            </div>
           </article>
           <div className="news-list">
             {news.map((item) => (
@@ -71,7 +88,12 @@ export default function LobbyPage() {
               </article>
             ))}
           </div>
-          <button className="all-news">Ver todas las novedades <ArrowRight size={16} /></button>
+          <button
+            className="all-news"
+            onClick={() => setToast("El listado completo de noticias todavía no está disponible.")}
+          >
+            Ver todas las novedades <ArrowRight size={16} />
+          </button>
         </aside>
       </div>
     </>
