@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   icons: {
-    icon: "/davalsy-icon.png",
-    shortcut: "/davalsy-icon.png",
-    apple: "/davalsy-icon.png",
+    icon: "/icon-512.png",
+    shortcut: "/icon-512.png",
+    apple: "/icon-512.png",
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
