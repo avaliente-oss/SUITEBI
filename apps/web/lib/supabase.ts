@@ -305,6 +305,184 @@ export async function adminDeleteSolution(client: SupabaseClient, id: string) {
   if (error) throw error;
 }
 
+// ── Gestión de usuarios (panel admin) ───────────────────────────────
+
+export const ORGANIZATION_ROLE_OPTIONS = [
+  "admin",
+  "analyst",
+  "editor",
+  "viewer",
+  "external_viewer",
+] as const;
+
+export type AssignableOrganizationRole = (typeof ORGANIZATION_ROLE_OPTIONS)[number];
+
+export type AdminMember = {
+  userId: string;
+  email: string | null;
+  fullName: string;
+  role: string;
+  status: string;
+  isPrimaryOwner: boolean;
+  joinedAt: string | null;
+  createdAt: string;
+};
+
+export type AdminInvitation = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type AdminUserSearchResult = {
+  userId: string;
+  email: string | null;
+  fullName: string;
+  createdAt: string;
+  organizations: {
+    organizationId: string;
+    organizationName: string;
+    role: string;
+    status: string;
+    isPrimaryOwner: boolean;
+  }[];
+};
+
+export type AdminPlatformAdmin = {
+  email: string;
+  createdAt: string;
+  hasAccount: boolean;
+};
+
+/** Traduce los códigos de error de los RPC a algo que un humano entienda. */
+export function describeAdminError(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const messages: Record<string, string> = {
+    NOT_PLATFORM_ADMIN: "No tienes permisos de administrador de plataforma.",
+    MEMBER_NOT_FOUND: "Ese usuario ya no pertenece a la organización.",
+    CANNOT_CHANGE_PRIMARY_OWNER:
+      "No se puede modificar al propietario principal desde el panel. El cambio de propiedad lo hace el dueño de la organización.",
+    CANNOT_DEACTIVATE_PRIMARY_OWNER:
+      "No se puede suspender ni quitar al propietario principal: toda organización activa necesita uno.",
+    OWNERSHIP_CHANGE_NOT_ALLOWED_HERE:
+      "Los roles de propietario y copropietario los administra el dueño de la organización, no el panel de plataforma.",
+    OWNERSHIP_INVITATION_NOT_ALLOWED_HERE:
+      "No se puede invitar como propietario o copropietario desde el panel de plataforma.",
+    USER_QUOTA_EXCEEDED:
+      "La organización llegó al máximo de usuarios de su plan. Sube el plan o agrega una excepción al feature 'users'.",
+    USERS_FEATURE_NOT_ENABLED:
+      "La organización no tiene habilitado el feature 'users'. Actívalo en la hoja de permisos.",
+    ALREADY_A_MEMBER: "Ese correo ya pertenece a la organización.",
+    INVALID_EMAIL: "El correo no tiene un formato válido.",
+    INVALID_STATUS: "Estado no válido.",
+    CANNOT_REMOVE_SELF: "No puedes quitarte a ti mismo del panel de administradores.",
+    LAST_PLATFORM_ADMIN: "No se puede quedar sin administradores de plataforma.",
+  };
+
+  for (const [code, message] of Object.entries(messages)) {
+    if (raw.includes(code)) return message;
+  }
+
+  return raw || "Ocurrió un error inesperado.";
+}
+
+export async function adminListOrganizationMembers(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("admin_list_organization_members", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw error;
+  return (data ?? []) as AdminMember[];
+}
+
+export async function adminSetMemberRole(
+  client: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  role: string,
+) {
+  const { error } = await client.rpc("admin_set_member_role", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetMemberStatus(
+  client: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  status: "active" | "suspended" | "removed",
+) {
+  const { error } = await client.rpc("admin_set_member_status", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+    p_status: status,
+  });
+  if (error) throw error;
+}
+
+export async function adminListInvitations(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("admin_list_invitations", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw error;
+  return (data ?? []) as AdminInvitation[];
+}
+
+export async function adminCreateInvitation(
+  client: SupabaseClient,
+  organizationId: string,
+  email: string,
+  role: string,
+) {
+  const { data, error } = await client.rpc("admin_create_invitation", {
+    p_organization_id: organizationId,
+    p_email: email,
+    p_role: role,
+  });
+  if (error) throw error;
+  return data as { id: string; token: string; email: string };
+}
+
+export async function adminRevokeInvitation(client: SupabaseClient, invitationId: string) {
+  const { error } = await client.rpc("admin_revoke_invitation", { p_invitation_id: invitationId });
+  if (error) throw error;
+}
+
+export async function adminSearchUsers(client: SupabaseClient, query: string) {
+  const { data, error } = await client.rpc("admin_search_users", { p_query: query });
+  if (error) throw error;
+  return (data ?? []) as AdminUserSearchResult[];
+}
+
+export async function adminListPlatformAdmins(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_platform_admins");
+  if (error) throw error;
+  return (data ?? []) as AdminPlatformAdmin[];
+}
+
+export async function adminAddPlatformAdmin(client: SupabaseClient, email: string) {
+  const { error } = await client.rpc("admin_add_platform_admin", { p_email: email });
+  if (error) throw error;
+}
+
+export async function adminRemovePlatformAdmin(client: SupabaseClient, email: string) {
+  const { error } = await client.rpc("admin_remove_platform_admin", { p_email: email });
+  if (error) throw error;
+}
+
+/** Acepta una invitación con el token del enlace. La usa /invitacion. */
+export async function acceptInvitation(client: SupabaseClient, token: string) {
+  const { data, error } = await client.rpc("accept_invitation", { p_token_hash: token });
+  if (error) throw error;
+  return data as string;
+}
+
 export async function authorizeSolution(
   client: SupabaseClient,
   organizationId: string,

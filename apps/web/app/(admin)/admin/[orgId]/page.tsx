@@ -87,6 +87,11 @@ export default function AdminOrganizationDetailPage({ params }: { params: Promis
         </p>
       </div>
 
+      <nav className="admin-tabs">
+        <Link href={`/admin/${orgId}`} className="active">Permisos</Link>
+        <Link href={`/admin/${orgId}/miembros`}>Miembros</Link>
+      </nav>
+
       {error && <p className="auth-message is-error">{error}</p>}
 
       {!features && !error && <p className="admin-loading">Cargando…</p>}
