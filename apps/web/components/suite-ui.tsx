@@ -7,7 +7,6 @@ import {
   Bell,
   Boxes,
   Database,
-  ExternalLink,
   FileText,
   Globe,
   Grid2X2,
@@ -190,23 +189,30 @@ export function ActiveWorkspace({
   );
 }
 
+/**
+ * Contenedor de una solución dentro de la mesa activa.
+ *
+ * La mesa está dormida a propósito: hoy todas las soluciones del catálogo
+ * viven fuera de la Suite y se abren por puente de sesión, así que nunca
+ * llegan aquí. Se conserva el armazón para cuando exista una solución que
+ * sí corra dentro de la Suite; lo que se quitó fue la maqueta con datos
+ * inventados que se pintaba en su lugar.
+ */
 export function SolutionWorkspace({ solution }: { solution: Solution }) {
   const Icon = solutionIcons[solution.icon];
-  const bars = [41, 55, 49, 64, 60, 74, 68, 88];
 
   return (
     <article className="workspace-app">
-      <header><div><span><Icon size={18} /></span><div><small>{solution.eyebrow}</small><strong>{solution.name}</strong></div></div><button><ExternalLink size={15} /> Pantalla completa</button></header>
+      <header>
+        <div>
+          <span><Icon size={18} /></span>
+          <div><small>{solution.eyebrow}</small><strong>{solution.name}</strong></div>
+        </div>
+      </header>
       <div className="workspace-app-body">
-        <div className="mini-kpis">
-          <div><small>RESULTADO</small><strong>{solution.metric}</strong><span>vs. periodo anterior</span></div>
-          <div><small>SEÑAL</small><strong>Positiva</strong><span className="up">+6.2% esta semana</span></div>
+        <div className="workspace-placeholder">
+          <p>Esta solución todavía no tiene una vista integrada dentro de la Suite.</p>
         </div>
-        <div className="mini-chart">
-          <div className="chart-title"><div><small>TENDENCIA</small><strong>Últimos 8 periodos</strong></div><span>Actualizado ahora</span></div>
-          <div className="bars">{bars.map((height, index) => <i key={index} style={{ height: `${height}%` }}><b /></i>)}</div>
-        </div>
-        <div className="insight-note"><Sparkles size={17} /><div><small>LECTURA DAVALSY</small><p>El desempeño mantiene una trayectoria positiva. Revisa el segmento norte para capturar la oportunidad detectada.</p></div><ArrowRight size={16} /></div>
       </div>
     </article>
   );
