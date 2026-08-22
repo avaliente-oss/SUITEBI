@@ -11,11 +11,18 @@ type AuthorizeDecision = {
   reason_code?: string;
 };
 
+/**
+ * Forma exacta que devuelve list_active_solutions(): el RPC entrega las
+ * llaves en camelCase para calzar con el tipo Solution del frontend, no en
+ * snake_case como las columnas de la tabla. Si esto se desalinea, la
+ * validación de abajo falla en silencio y toda solución externa responde
+ * SOLUTION_NOT_BRIDGEABLE.
+ */
 type SolutionRow = {
   id: string;
-  feature_key: string;
-  is_external: boolean;
-  external_url: string | null;
+  featureKey: string;
+  external: boolean;
+  externalUrl: string | null;
 };
 
 export async function POST(request: NextRequest) {
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   const solution = ((solutionsList ?? []) as SolutionRow[]).find((item) => item.id === solutionId);
-  if (!solution || !solution.is_external || !solution.external_url) {
+  if (!solution || !solution.external || !solution.externalUrl) {
     return NextResponse.json({ error: "SOLUTION_NOT_BRIDGEABLE" }, { status: 404 });
   }
 
@@ -76,7 +83,7 @@ export async function POST(request: NextRequest) {
     p_action: "suite.launch",
     p_workspace_id: null,
     p_resource_id: null,
-    p_feature_key: solution.feature_key,
+    p_feature_key: solution.featureKey,
     p_usage_units: 0,
     p_consume_quota: false,
     p_metadata: { surface: "solution_bridge", solution_id: solutionId },
@@ -135,8 +142,8 @@ export async function POST(request: NextRequest) {
     .setAudience("davalsy-erp")
     .sign(secretKey);
 
-  const separator = solution.external_url.includes("?") ? "&" : "?";
-  const redirectUrl = `${solution.external_url}${separator}token=${token}`;
+  const separator = solution.externalUrl.includes("?") ? "&" : "?";
+  const redirectUrl = `${solution.externalUrl}${separator}token=${token}`;
 
   return NextResponse.json({ redirectUrl });
 }
