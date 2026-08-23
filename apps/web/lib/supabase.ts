@@ -95,11 +95,62 @@ export async function completePendingOrganizationSetup(client: SupabaseClient) {
   await client.auth.updateUser({ data: { pending_organization_name: null } });
 }
 
+export type PublicPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  tagline: string;
+  priceLabel: string;
+  basicQuota: number | null;
+  selfServe: boolean;
+};
+
+export type BasicSolution = {
+  id: string;
+  name: string;
+  eyebrow: string;
+  description: string;
+  icon: string;
+};
+
+export async function listPublicPlans(client: SupabaseClient) {
+  const { data, error } = await client.rpc("list_public_plans");
+  if (error) throw error;
+  return (data ?? []) as PublicPlan[];
+}
+
+export async function listBasicSolutions(client: SupabaseClient) {
+  const { data, error } = await client.rpc("list_basic_solutions");
+  if (error) throw error;
+  return (data ?? []) as BasicSolution[];
+}
+
+async function applySignupPlan(
+  client: SupabaseClient,
+  organizationId: string,
+  planId: string,
+  solutionIds: string[],
+) {
+  const { error } = await client.rpc("apply_signup_plan", {
+    p_organization_id: organizationId,
+    p_plan_id: planId,
+    p_solution_ids: solutionIds,
+  });
+  if (error) throw error;
+}
+
 export async function signUpWithOrganization(
   client: SupabaseClient,
-  params: { fullName: string; organizationName: string; email: string; password: string },
+  params: {
+    fullName: string;
+    organizationName: string;
+    email: string;
+    password: string;
+    planId: string;
+    solutionIds: string[];
+  },
 ) {
-  const { fullName, organizationName, email, password } = params;
+  const { fullName, organizationName, email, password, planId, solutionIds } = params;
 
   const { data, error } = await client.auth.signUp({
     email,
@@ -108,6 +159,8 @@ export async function signUpWithOrganization(
       data: {
         full_name: fullName,
         pending_organization_name: organizationName,
+        pending_plan_id: planId,
+        pending_solution_ids: solutionIds,
       },
       emailRedirectTo:
         typeof window !== "undefined" ? window.location.origin : undefined,
@@ -118,11 +171,38 @@ export async function signUpWithOrganization(
 
   if (data.session && data.user) {
     await createOrganizationForCurrentUser(client, organizationName, data.user.id);
-    await client.auth.updateUser({ data: { pending_organization_name: null } });
+    const context = await loadViewerContext(client);
+    const organization = context.organizations[0];
+    if (organization) {
+      await applySignupPlan(client, organization.id, planId, solutionIds);
+    }
+    await client.auth.updateUser({
+      data: { pending_organization_name: null, pending_plan_id: null, pending_solution_ids: null },
+    });
     return { needsEmailConfirmation: false };
   }
 
   return { needsEmailConfirmation: true };
+}
+
+export async function getOrganizationSolutions(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("get_organization_solutions", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw error;
+  return (data ?? { quota: null, selected: [] }) as { quota: number | null; selected: string[] };
+}
+
+export async function setOrganizationSolutions(
+  client: SupabaseClient,
+  organizationId: string,
+  solutionIds: string[],
+) {
+  const { error } = await client.rpc("set_organization_solutions", {
+    p_organization_id: organizationId,
+    p_solution_ids: solutionIds,
+  });
+  if (error) throw error;
 }
 
 export async function updateFullName(client: SupabaseClient, fullName: string) {
@@ -253,6 +333,8 @@ export type AdminSolution = {
   metric_label: string;
   sort_order: number;
   is_active: boolean;
+  pricing_type: "basic" | "addon";
+  price_note: string;
 };
 
 export async function adminListSolutions(client: SupabaseClient) {
@@ -276,6 +358,8 @@ export async function adminUpsertSolution(
     metric?: string;
     metricLabel?: string;
     sortOrder?: number;
+    pricingType?: "basic" | "addon";
+    priceNote?: string;
   },
 ) {
   const { error } = await client.rpc("admin_upsert_solution", {
@@ -291,6 +375,8 @@ export async function adminUpsertSolution(
     p_metric: input.metric ?? "",
     p_metric_label: input.metricLabel ?? "",
     p_sort_order: input.sortOrder ?? 100,
+    p_pricing_type: input.pricingType ?? "basic",
+    p_price_note: input.priceNote ?? "",
   });
   if (error) throw error;
 }

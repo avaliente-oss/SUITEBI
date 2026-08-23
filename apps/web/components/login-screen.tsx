@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -13,6 +13,10 @@ import {
   isSupabaseConfigured,
   requestPasswordReset,
   signUpWithOrganization,
+  listPublicPlans,
+  listBasicSolutions,
+  type PublicPlan,
+  type BasicSolution,
 } from "@/lib/supabase";
 import { BrandMark } from "@/components/suite-ui";
 
@@ -30,6 +34,10 @@ export function LoginScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"password" | "magic">("password");
+  const [plans, setPlans] = useState<PublicPlan[]>([]);
+  const [basicSolutions, setBasicSolutions] = useState<BasicSolution[]>([]);
+  const [planId, setPlanId] = useState("free");
+  const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState(error);
   const [busy, setBusy] = useState(false);
@@ -40,6 +48,42 @@ export function LoginScreen({
   const [signupPassword, setSignupPassword] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
   const submitLockRef = useRef(false);
+
+  // El catálogo comercial (planes y soluciones básicas) es público: se
+  // carga sin sesión para poder elegir plan durante el registro.
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+
+    Promise.all([listPublicPlans(supabase), listBasicSolutions(supabase)])
+      .then(([planList, solutionList]) => {
+        if (cancelled) return;
+        setPlans(planList);
+        setBasicSolutions(solutionList);
+      })
+      .catch(() => {
+        /* Sin catálogo, el registro sigue funcionando con el plan por defecto. */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  const activePlan = plans.find((plan) => plan.id === planId) ?? null;
+  const quota = activePlan?.basicQuota ?? null;
+  const needsSolutionPick = Boolean(activePlan?.selfServe && quota && basicSolutions.length > 0);
+
+  function toggleSolution(id: string) {
+    setSelectedSolutions((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (quota !== null && current.length >= quota) {
+        // Al llegar al cupo, la nueva elección reemplaza a la más antigua.
+        return [...current.slice(1), id];
+      }
+      return [...current, id];
+    });
+  }
 
   function switchScreen(next: "login" | "signup") {
     setScreen(next);
@@ -115,6 +159,11 @@ export function LoginScreen({
       return;
     }
 
+    if (needsSolutionPick && selectedSolutions.length === 0) {
+      setFormError("Elige al menos una solución para tu plan.");
+      return;
+    }
+
     submitLockRef.current = true;
     setBusy(true);
     setFormError("");
@@ -126,6 +175,8 @@ export function LoginScreen({
         organizationName,
         email: signupEmail,
         password: signupPassword,
+        planId,
+        solutionIds: selectedSolutions,
       });
 
       if (needsEmailConfirmation) {
@@ -133,6 +184,11 @@ export function LoginScreen({
         setFormError("");
         setMessage(
           "Te enviamos un correo para confirmar tu cuenta. Confírmalo y luego inicia sesión: tu organización se creará automáticamente.",
+        );
+      } else if (activePlan && !activePlan.selfServe) {
+        setScreen("login");
+        setMessage(
+          "Tu cuenta quedó creada y en revisión. Un asesor de DAVALSY te contactará para activar tu plan Enterprise.",
         );
       } else {
         await onAuthenticated();
@@ -339,6 +395,68 @@ export function LoginScreen({
                 minLength={8}
                 disabled={!isSupabaseConfigured}
               />
+
+              {plans.length > 0 && (
+                <>
+                  <span className="signup-section-label">Elige tu plan</span>
+                  <div className="plan-picker">
+                    {plans.map((plan) => (
+                      <button
+                        type="button"
+                        key={plan.id}
+                        className={`plan-option ${planId === plan.id ? "active" : ""}`}
+                        onClick={() => {
+                          setPlanId(plan.id);
+                          setSelectedSolutions([]);
+                        }}
+                      >
+                        <span className="plan-option-top">
+                          <strong>{plan.name}</strong>
+                          <em>{plan.priceLabel}</em>
+                        </span>
+                        <span className="plan-option-note">{plan.tagline || plan.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {needsSolutionPick && (
+                <>
+                  <span className="signup-section-label">
+                    {quota === 1
+                      ? "Elige la solución que quieres usar"
+                      : `Elige hasta ${quota} soluciones`}
+                    <em>{selectedSolutions.length} de {quota}</em>
+                  </span>
+                  <div className="solution-picker">
+                    {basicSolutions.map((solution) => (
+                      <button
+                        type="button"
+                        key={solution.id}
+                        className={`solution-option ${selectedSolutions.includes(solution.id) ? "active" : ""}`}
+                        onClick={() => toggleSolution(solution.id)}
+                      >
+                        <span className="solution-option-check">
+                          {selectedSolutions.includes(solution.id) && <Check size={13} />}
+                        </span>
+                        <span>
+                          <strong>{solution.name}</strong>
+                          <small>{solution.eyebrow}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="signup-hint">Podrás cambiar tu elección después desde Plan y facturación.</p>
+                </>
+              )}
+
+              {activePlan && !activePlan.selfServe && (
+                <p className="signup-hint">
+                  Creamos tu cuenta y un asesor de DAVALSY te contacta para configurar tu plan a la medida.
+                  Mientras tanto, tu organización queda en revisión.
+                </p>
+              )}
 
               {(formError || message) && (
                 <p className={`auth-message ${formError ? "is-error" : ""}`}>

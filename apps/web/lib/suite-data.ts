@@ -27,6 +27,9 @@ export type Solution = {
   metric: string;
   metricLabel: string;
   externalUrl?: string | null;
+  /** 'basic' cuenta contra el cupo del plan; 'addon' se contrata aparte. */
+  pricingType?: "basic" | "addon";
+  priceNote?: string;
   /** Apps que viven fuera de la Suite (otro dominio) y se abren vía puente de sesión, no en la mesa activa. */
   external?: boolean;
 };

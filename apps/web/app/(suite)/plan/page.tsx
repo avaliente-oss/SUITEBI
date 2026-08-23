@@ -1,34 +1,81 @@
 "use client";
 
-import { Check, X, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, LoaderCircle, Zap } from "lucide-react";
 import { useSuite } from "@/lib/suite-context";
-
-type PlanFeature = { label: string; starter: string | boolean; business: string | boolean; enterprise: string | boolean };
-
-const planFeatures: PlanFeature[] = [
-  { label: "Dashboards activos", starter: "5", business: "25", enterprise: "Sin límite" },
-  { label: "Usuarios por organización", starter: "3", business: "15", enterprise: "Sin límite" },
-  { label: "Fuentes de datos", starter: "2", business: "10", enterprise: "Sin límite" },
-  { label: "Actualizaciones diarias", starter: "1 / día", business: "8 / día", enterprise: "Sin límite" },
-  { label: "Exportar dashboards", starter: false, business: true, enterprise: true },
-  { label: "Alertas", starter: false, business: true, enterprise: true },
-  { label: "Análisis con IA", starter: false, business: "500 / mes", enterprise: "Sin límite" },
-  { label: "Marca blanca", starter: false, business: false, enterprise: true },
-  { label: "Acceso a la API", starter: false, business: true, enterprise: true },
-  { label: "DavOps ERP", starter: true, business: true, enterprise: true },
-];
-
-const plans = [
-  { id: "starter", name: "Starter", price: "Desde $0", description: "Para equipos que están empezando a centralizar datos." },
-  { id: "business", name: "Business", price: "Plan operativo", description: "Para empresas en crecimiento con varios equipos." },
-  { id: "enterprise", name: "Enterprise", price: "A medida", description: "Para organizaciones corporativas con necesidades específicas." },
-] as const;
+import {
+  getOrganizationSolutions,
+  getSupabaseBrowserClient,
+  listPublicPlans,
+  setOrganizationSolutions,
+  type PublicPlan,
+} from "@/lib/supabase";
 
 export default function PlanPage() {
-  const { organization, setToast } = useSuite();
+  const { organization, solutions, setToast, isDemo } = useSuite();
 
-  function requestPlanChange(planName: string) {
-    setToast(`La facturación en línea todavía no está disponible. Escríbenos para activar ${planName}.`);
+  const [plans, setPlans] = useState<PublicPlan[]>([]);
+  const [quota, setQuota] = useState<number | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  // En modo demo no hay nada que traer, así que arranca ya cargado.
+  const [loaded, setLoaded] = useState(isDemo);
+  const [saving, setSaving] = useState(false);
+
+  const basicSolutions = solutions.filter((solution) => (solution.pricingType ?? "basic") === "basic");
+  const addonSolutions = solutions.filter((solution) => solution.pricingType === "addon");
+
+  useEffect(() => {
+    if (isDemo) return;
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    let cancelled = false;
+    Promise.all([listPublicPlans(supabase), getOrganizationSolutions(supabase, organization.id)])
+      .then(([planList, current]) => {
+        if (cancelled) return;
+        setPlans(planList);
+        setQuota(current.quota);
+        setSelected(current.selected);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organization.id, isDemo]);
+
+  function toggle(id: string) {
+    setSelected((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (quota !== null && current.length >= quota) return [...current.slice(1), id];
+      return [...current, id];
+    });
+  }
+
+  async function save() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setSaving(true);
+    try {
+      await setOrganizationSolutions(supabase, organization.id, selected);
+      setToast("Listo. Recarga para ver tus soluciones actualizadas.");
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "";
+      setToast(
+        raw.includes("NOT_ALLOWED")
+          ? "Sólo el propietario de la organización puede cambiar las soluciones contratadas."
+          : raw.includes("QUOTA_EXCEEDED")
+            ? "Elegiste más soluciones de las que incluye tu plan."
+            : "No pudimos guardar tu selección.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -37,56 +84,131 @@ export default function PlanPage() {
         <div>
           <span className="today-label"><i /> FACTURACIÓN</span>
           <h1>Plan y facturación.</h1>
-          <p>Consulta tu plan actual y compara qué incluye cada nivel de la Suite.</p>
+          <p>Tu plan actual, las soluciones que incluye y cómo cambiarlas.</p>
         </div>
         <div className="plan-card">
           <span className="plan-icon"><Zap size={17} /></span>
           <div><small>PLAN ACTUAL</small><strong>{organization.planName}</strong></div>
           <span className={`status-chip status-${organization.accessStatus}`}>
-            {organization.accessStatus === "trial" ? "Prueba" : organization.accessStatus === "full" ? "Activo" : organization.accessStatus}
+            {organization.accessStatus === "trial" ? "Prueba" : "Activo"}
           </span>
         </div>
       </section>
 
-      <section className="plans-compare">
-        <div className="plans-compare-head">
-          <span />
-          {plans.map((plan) => (
-            <div key={plan.id} className="plans-compare-col-head">
-              <strong>{plan.name}</strong>
-              <span>{plan.price}</span>
-              <p>{plan.description}</p>
-              {plan.id === organization.planId ? (
-                <span className="included-chip">PLAN ACTUAL</span>
-              ) : (
-                <button type="button" onClick={() => requestPlanChange(plan.name)}>
-                  Cambiar a {plan.name}
-                </button>
+      {!loaded && <p className="admin-loading">Cargando…</p>}
+
+      {loaded && (
+        <>
+          <section className="settings-card plan-section">
+            <div className="settings-card-head">
+              <div>
+                <h2>Tus soluciones</h2>
+                <p>
+                  {quota === null
+                    ? "Tu plan incluye todas las soluciones básicas."
+                    : `Tu plan incluye ${quota} ${quota === 1 ? "solución básica" : "soluciones básicas"}. Elige cuáles quieres usar.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="solution-picker">
+              {basicSolutions.map((solution) => {
+                const isOn = quota === null || selected.includes(solution.id);
+                return (
+                  <button
+                    type="button"
+                    key={solution.id}
+                    className={`solution-option ${isOn ? "active" : ""}`}
+                    disabled={quota === null}
+                    onClick={() => toggle(solution.id)}
+                  >
+                    <span className="solution-option-check">{isOn && <Check size={13} />}</span>
+                    <span>
+                      <strong>{solution.name}</strong>
+                      <small>{solution.eyebrow}</small>
+                    </span>
+                  </button>
+                );
+              })}
+              {basicSolutions.length === 0 && (
+                <p className="admin-loading">Todavía no hay soluciones básicas en el catálogo.</p>
               )}
             </div>
-          ))}
-        </div>
 
-        {planFeatures.map((feature) => (
-          <div className="plans-compare-row" key={feature.label}>
-            <span className="plans-compare-label">{feature.label}</span>
-            {[feature.starter, feature.business, feature.enterprise].map((value, index) => (
-              <span className="plans-compare-value" key={index}>
-                {typeof value === "boolean" ? (
-                  value ? <Check size={16} className="plans-yes" /> : <X size={16} className="plans-no" />
-                ) : (
-                  value
-                )}
-              </span>
-            ))}
-          </div>
-        ))}
-      </section>
+            {quota !== null && (
+              <div className="plan-save-row">
+                <span>{selected.length} de {quota} elegidas</span>
+                <button className="primary-login settings-submit" type="button" onClick={save} disabled={saving}>
+                  {saving ? <LoaderCircle className="spin" size={16} /> : "Guardar selección"}
+                </button>
+              </div>
+            )}
+          </section>
 
-      <p className="plans-footnote">
-        La facturación en línea con tarjeta todavía no está disponible. Para cambiar de plan, escríbenos a
-        soporte@davalsy.com y lo activamos manualmente mientras conectamos el pago automático.
-      </p>
+          {addonSolutions.length > 0 && (
+            <section className="settings-card plan-section">
+              <div className="settings-card-head">
+                <div>
+                  <h2>Soluciones que se contratan aparte</h2>
+                  <p>No están incluidas en ningún plan. Se activan al contratarlas con DAVALSY.</p>
+                </div>
+              </div>
+              <div className="solution-picker">
+                {addonSolutions.map((solution) => (
+                  <div key={solution.id} className="solution-option is-addon">
+                    <span>
+                      <strong>{solution.name}</strong>
+                      <small>{solution.priceNote || solution.eyebrow}</small>
+                    </span>
+                    <button
+                      type="button"
+                      className="addon-request"
+                      onClick={() => setToast(`Escríbenos para contratar ${solution.name}.`)}
+                    >
+                      Me interesa
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="settings-card plan-section">
+            <div className="settings-card-head">
+              <div>
+                <h2>Planes disponibles</h2>
+                <p>El cambio de plan todavía se hace con un asesor: aún no hay cobro en línea.</p>
+              </div>
+            </div>
+            <div className="plan-picker">
+              {plans.map((plan) => (
+                <div key={plan.id} className={`plan-option ${plan.id === organization.planId ? "active" : ""}`}>
+                  <span className="plan-option-top">
+                    <strong>{plan.name}</strong>
+                    <em>{plan.priceLabel}</em>
+                  </span>
+                  <span className="plan-option-note">{plan.tagline || plan.description}</span>
+                  {plan.id !== organization.planId && (
+                    <button
+                      type="button"
+                      className="addon-request"
+                      onClick={() =>
+                        setToast(
+                          plan.selfServe
+                            ? `Escríbenos para cambiar al plan ${plan.name}.`
+                            : `Un asesor te contactará para armar tu plan ${plan.name}.`,
+                        )
+                      }
+                    >
+                      {plan.selfServe ? "Cambiar a este plan" : "Hablar con DAVALSY"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }

@@ -27,6 +27,8 @@ const emptyForm = {
   metric: "",
   metricLabel: "",
   sortOrder: 100,
+  pricingType: "basic" as "basic" | "addon",
+  priceNote: "",
 };
 
 export default function AdminSolucionesPage() {
@@ -70,6 +72,8 @@ export default function AdminSolucionesPage() {
       metric: solution.metric,
       metricLabel: solution.metric_label,
       sortOrder: solution.sort_order,
+      pricingType: solution.pricing_type === "addon" ? "addon" : "basic",
+      priceNote: solution.price_note ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -222,6 +226,30 @@ export default function AdminSolucionesPage() {
               />
             </label>
 
+            <label className="admin-solution-full">
+              Cómo se cobra
+              <select
+                value={form.pricingType}
+                onChange={(event) =>
+                  setForm((f) => ({ ...f, pricingType: event.target.value as "basic" | "addon" }))
+                }
+              >
+                <option value="basic">Básica — cuenta contra el cupo del plan</option>
+                <option value="addon">Se contrata aparte — no se incluye en ningún plan</option>
+              </select>
+            </label>
+
+            {form.pricingType === "addon" && (
+              <label className="admin-solution-full">
+                Nota de precio <span className="admin-optional">(la ve el cliente en su catálogo)</span>
+                <input
+                  placeholder="Desde $X al mes · contáctanos"
+                  value={form.priceNote}
+                  onChange={(event) => setForm((f) => ({ ...f, priceNote: event.target.value }))}
+                />
+              </label>
+            )}
+
             <label className="admin-solution-checkbox">
               <input
                 type="checkbox"
@@ -301,6 +329,9 @@ export default function AdminSolucionesPage() {
                     {solution.is_active ? "Activa" : "Desactivada"}
                   </span>
                   <span className="status-chip">{solution.is_external ? "Externa" : "En la Suite"}</span>
+                  <span className={`status-chip ${solution.pricing_type === "addon" ? "status-trial" : ""}`}>
+                    {solution.pricing_type === "addon" ? "Cobro aparte" : "Básica"}
+                  </span>
                 </div>
 
                 <div className="admin-feature-actions">
