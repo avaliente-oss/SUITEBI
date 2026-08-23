@@ -2,12 +2,14 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { LoaderCircle, Search, ShieldUser, Trash2, UserPlus } from "lucide-react";
+import { Ban, Check, LoaderCircle, Pencil, Search, ShieldUser, Trash2, UserPlus } from "lucide-react";
 import {
   adminAddPlatformAdmin,
   adminListPlatformAdmins,
   adminRemovePlatformAdmin,
   adminSearchUsers,
+  adminSetUserActive,
+  adminUpdateUserProfile,
   describeAdminError,
   getSupabaseBrowserClient,
   type AdminPlatformAdmin,
@@ -25,6 +27,9 @@ export default function AdminUsuariosPage() {
   const [busyEmail, setBusyEmail] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [busyUser, setBusyUser] = useState<string | null>(null);
 
   async function loadUsers(search: string) {
     const supabase = getSupabaseBrowserClient();
@@ -61,6 +66,48 @@ export default function AdminUsuariosPage() {
     event.preventDefault();
     setError("");
     loadUsers(query);
+  }
+
+  async function runUserAction(userId: string, action: () => Promise<void>, message: string) {
+    setError("");
+    setNotice("");
+    setBusyUser(userId);
+    try {
+      await action();
+      await loadUsers(query);
+      setNotice(message);
+    } catch (err) {
+      setError(describeAdminError(err));
+    } finally {
+      setBusyUser(null);
+    }
+  }
+
+  function saveName(user: AdminUserSearchResult) {
+    runUserAction(
+      user.userId,
+      async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        await adminUpdateUserProfile(supabase, user.userId, editName);
+      },
+      "Nombre actualizado.",
+    ).then(() => setEditingUser(null));
+  }
+
+  function toggleActive(user: AdminUserSearchResult) {
+    if (user.isActive && !window.confirm(`¿Desactivar a ${user.email}? No podrá entrar a ninguna organización.`)) {
+      return;
+    }
+    runUserAction(
+      user.userId,
+      async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        await adminSetUserActive(supabase, user.userId, !user.isActive);
+      },
+      user.isActive ? "Usuario desactivado." : "Usuario reactivado.",
+    );
   }
 
   async function submitAdmin(event: FormEvent) {
@@ -136,8 +183,23 @@ export default function AdminUsuariosPage() {
           {users.map((user) => (
             <div key={user.userId} className="admin-feature-row admin-member-row">
               <div>
-                <strong>{user.fullName || "Sin nombre"}</strong>
+                {editingUser === user.userId ? (
+                  <div className="admin-inline-edit">
+                    <input
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      placeholder="Nombre completo"
+                    />
+                    <button type="button" onClick={() => saveName(user)} disabled={busyUser === user.userId}>
+                      <Check size={13} /> Guardar
+                    </button>
+                    <button type="button" onClick={() => setEditingUser(null)}>Cancelar</button>
+                  </div>
+                ) : (
+                  <strong>{user.fullName || "Sin nombre"}</strong>
+                )}
                 <span className="admin-feature-key">{user.email}</span>
+                {!user.isActive && <p className="admin-owner-note"><Ban size={12} /> Cuenta desactivada: no puede entrar a ninguna organización.</p>}
               </div>
 
               <div className="admin-user-orgs">
@@ -155,6 +217,22 @@ export default function AdminUsuariosPage() {
                     </Link>
                   ))
                 )}
+              </div>
+
+              <div className="admin-feature-actions">
+                <button
+                  type="button"
+                  disabled={busyUser === user.userId}
+                  onClick={() => {
+                    setEditingUser(user.userId);
+                    setEditName(user.fullName);
+                  }}
+                >
+                  <Pencil size={13} /> Nombre
+                </button>
+                <button type="button" disabled={busyUser === user.userId} onClick={() => toggleActive(user)}>
+                  {user.isActive ? <><Ban size={13} /> Desactivar</> : <><Check size={13} /> Reactivar</>}
+                </button>
               </div>
             </div>
           ))}

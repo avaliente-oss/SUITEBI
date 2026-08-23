@@ -123,6 +123,7 @@ export default function AdminOrganizationMembersPage({ params }: { params: Promi
       <nav className="admin-tabs">
         <Link href={`/admin/${orgId}`}>Permisos</Link>
         <Link href={`/admin/${orgId}/miembros`} className="active">Miembros</Link>
+        <Link href={`/admin/${orgId}/ajustes`}>Ajustes</Link>
       </nav>
 
       {error && <p className="auth-message is-error">{error}</p>}

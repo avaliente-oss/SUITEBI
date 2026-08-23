@@ -342,6 +342,7 @@ export type AdminUserSearchResult = {
   userId: string;
   email: string | null;
   fullName: string;
+  isActive: boolean;
   createdAt: string;
   organizations: {
     organizationId: string;
@@ -381,6 +382,18 @@ export function describeAdminError(error: unknown) {
     INVALID_STATUS: "Estado no válido.",
     CANNOT_REMOVE_SELF: "No puedes quitarte a ti mismo del panel de administradores.",
     LAST_PLATFORM_ADMIN: "No se puede quedar sin administradores de plataforma.",
+    NAME_REQUIRED: "El nombre no puede quedar vacío.",
+    OWNER_HAS_NO_ACCOUNT:
+      "Ese correo todavía no tiene cuenta en la Suite. Crea la organización sin dueño y asígnalo cuando la persona se registre, o invítala primero.",
+    ORGANIZATION_ALREADY_HAS_OWNER:
+      "Esta organización ya tiene propietario. El cambio de propiedad lo hace el dueño actual desde su cuenta.",
+    ORGANIZATION_NOT_FOUND: "Esa organización ya no existe.",
+    CONFIRMATION_MISMATCH: "El nombre que escribiste no coincide con el de la organización.",
+    PLAN_NOT_FOUND: "Ese plan no existe.",
+    SLUG_UNAVAILABLE: "No pudimos generar un identificador único para ese nombre. Prueba con otro.",
+    CANNOT_DEACTIVATE_SELF: "No puedes desactivar tu propia cuenta.",
+    ROLE_CHANGE_REQUIRES_OWNER:
+      "Ese cambio de propiedad lo debe hacer el dueño de la organización desde su cuenta.",
   };
 
   for (const [code, message] of Object.entries(messages)) {
@@ -473,6 +486,102 @@ export async function adminAddPlatformAdmin(client: SupabaseClient, email: strin
 
 export async function adminRemovePlatformAdmin(client: SupabaseClient, email: string) {
   const { error } = await client.rpc("admin_remove_platform_admin", { p_email: email });
+  if (error) throw error;
+}
+
+// ── Administración de organizaciones ────────────────────────────────
+
+export const ORGANIZATION_STATUS_OPTIONS = ["active", "suspended", "inactive"] as const;
+export const ACCESS_STATUS_OPTIONS = ["trial", "full", "limited", "pending", "suspended"] as const;
+
+export type AdminPlan = { id: string; name: string; description: string | null };
+
+export async function adminListPlans(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_plans");
+  if (error) throw error;
+  return (data ?? []) as AdminPlan[];
+}
+
+export async function adminCreateOrganization(
+  client: SupabaseClient,
+  input: { name: string; planId?: string; ownerEmail?: string },
+) {
+  const { data, error } = await client.rpc("admin_create_organization", {
+    p_name: input.name,
+    p_plan_id: input.planId ?? null,
+    p_owner_email: input.ownerEmail ?? null,
+  });
+  if (error) throw error;
+  return data as { id: string; slug: string; hasOwner: boolean };
+}
+
+export async function adminSetPrimaryOwner(client: SupabaseClient, organizationId: string, email: string) {
+  const { error } = await client.rpc("admin_set_primary_owner", {
+    p_organization_id: organizationId,
+    p_email: email,
+  });
+  if (error) throw error;
+}
+
+export async function adminUpdateOrganization(client: SupabaseClient, organizationId: string, name: string) {
+  const { error } = await client.rpc("admin_update_organization", {
+    p_organization_id: organizationId,
+    p_name: name,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetOrganizationStatus(
+  client: SupabaseClient,
+  organizationId: string,
+  status: string,
+) {
+  const { error } = await client.rpc("admin_set_organization_status", {
+    p_organization_id: organizationId,
+    p_status: status,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetOrganizationPlan(
+  client: SupabaseClient,
+  organizationId: string,
+  planId: string,
+  accessStatus: string,
+) {
+  const { error } = await client.rpc("admin_set_organization_plan", {
+    p_organization_id: organizationId,
+    p_plan_id: planId,
+    p_access_status: accessStatus,
+  });
+  if (error) throw error;
+}
+
+export async function adminDeleteOrganization(
+  client: SupabaseClient,
+  organizationId: string,
+  confirmName: string,
+) {
+  const { error } = await client.rpc("admin_delete_organization", {
+    p_organization_id: organizationId,
+    p_confirm_name: confirmName,
+  });
+  if (error) throw error;
+}
+
+export async function adminUpdateUserProfile(client: SupabaseClient, userId: string, fullName: string) {
+  const { error } = await client.rpc("admin_update_user_profile", {
+    p_user_id: userId,
+    p_full_name: fullName,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetUserActive(client: SupabaseClient, userId: string, isActive: boolean) {
+  const { error } = await client.rpc("admin_set_user_active", {
+    p_user_id: userId,
+    p_is_active: isActive,
+  });
   if (error) throw error;
 }
 

@@ -90,6 +90,7 @@ export default function AdminOrganizationDetailPage({ params }: { params: Promis
       <nav className="admin-tabs">
         <Link href={`/admin/${orgId}`} className="active">Permisos</Link>
         <Link href={`/admin/${orgId}/miembros`}>Miembros</Link>
+        <Link href={`/admin/${orgId}/ajustes`}>Ajustes</Link>
       </nav>
 
       {error && <p className="auth-message is-error">{error}</p>}
