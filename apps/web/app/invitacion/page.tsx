@@ -1,21 +1,30 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
-import { acceptInvitation, getSupabaseBrowserClient } from "@/lib/supabase";
+import {
+  acceptInvitation,
+  getInvitationPreview,
+  getSupabaseBrowserClient,
+  signUpFromInvitation,
+  type InvitationPreview,
+} from "@/lib/supabase";
 import { BrandMark, LoadingScreen } from "@/components/suite-ui";
+import { formatRole } from "@/lib/suite-data";
 
-type Status = "checking" | "needs_login" | "ready" | "accepting" | "done" | "error";
+/** "register" = falta crear la cuenta · "ready" = sólo falta aceptar. */
+type Status = "checking" | "register" | "ready" | "done" | "error";
 
 const errorMessages: Record<string, string> = {
   INVITATION_NOT_FOUND: "Esta invitación ya no existe o ya fue usada.",
   INVITATION_EXPIRED: "Esta invitación venció. Pide una nueva a tu contacto en DAVALSY.",
   INVITATION_EMAIL_MISMATCH:
-    "Esta invitación es para otro correo. Inicia sesión con el correo al que te la enviaron.",
+    "Esta invitación es para otro correo. Cierra sesión y entra con el correo al que te la enviaron.",
   INVITATION_TOKEN_REQUIRED: "El enlace está incompleto.",
   UNAUTHENTICATED: "Necesitas iniciar sesión para aceptar la invitación.",
+  User_already_registered: "Ese correo ya tiene cuenta. Inicia sesión y vuelve a abrir este enlace.",
 };
 
 function describe(error: unknown) {
@@ -23,7 +32,10 @@ function describe(error: unknown) {
   for (const [code, message] of Object.entries(errorMessages)) {
     if (raw.includes(code)) return message;
   }
-  return raw || "No pudimos aceptar la invitación.";
+  if (raw.toLowerCase().includes("already registered")) {
+    return "Ese correo ya tiene cuenta. Inicia sesión y vuelve a abrir este enlace.";
+  }
+  return raw || "No pudimos completar la invitación.";
 }
 
 function InvitationFlow() {
@@ -34,15 +46,38 @@ function InvitationFlow() {
 
   const [status, setStatus] = useState<Status>(supabase && token ? "checking" : "error");
   const [error, setError] = useState(token ? "" : "El enlace no trae un código de invitación.");
+  const [invitation, setInvitation] = useState<InvitationPreview | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!supabase || !token) return;
-
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setStatus(data.session ? "ready" : "needs_login");
-    });
+
+    (async () => {
+      try {
+        const [{ data: sessionData }, preview] = await Promise.all([
+          supabase.auth.getSession(),
+          getInvitationPreview(supabase, token),
+        ]);
+        if (!active) return;
+
+        if (!preview) {
+          setError("Esta invitación ya no es válida o venció.");
+          setStatus("error");
+          return;
+        }
+
+        setInvitation(preview);
+        // Con sesión abierta sólo falta aceptar; sin ella, se crea la cuenta aquí.
+        setStatus(sessionData.session ? "ready" : "register");
+      } catch (loadError) {
+        if (!active) return;
+        setError(describe(loadError));
+        setStatus("error");
+      }
+    })();
 
     return () => {
       active = false;
@@ -53,14 +88,51 @@ function InvitationFlow() {
     if (!supabase) return;
 
     setError("");
-    setStatus("accepting");
+    setBusy(true);
     try {
       await acceptInvitation(supabase, token);
       setStatus("done");
       window.setTimeout(() => router.replace("/lobby"), 1500);
     } catch (acceptError) {
       setError(describe(acceptError));
-      setStatus("error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function registerAndAccept(event: FormEvent) {
+    event.preventDefault();
+    if (!supabase || !invitation) return;
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    setError("");
+    setBusy(true);
+    try {
+      const { needsEmailConfirmation } = await signUpFromInvitation(supabase, {
+        fullName,
+        email: invitation.email,
+        password,
+      });
+
+      if (needsEmailConfirmation) {
+        setStatus("error");
+        setError(
+          "Te enviamos un correo para confirmar tu cuenta. Confírmalo y vuelve a abrir este mismo enlace para entrar a la organización.",
+        );
+        return;
+      }
+
+      await acceptInvitation(supabase, token);
+      setStatus("done");
+      window.setTimeout(() => router.replace("/lobby"), 1500);
+    } catch (signupError) {
+      setError(describe(signupError));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -72,29 +144,62 @@ function InvitationFlow() {
         <div className="mobile-brand"><BrandMark compact /></div>
         <span className="step-label">INVITACIÓN</span>
 
-        {status === "needs_login" && (
+        {invitation && (status === "register" || status === "ready") && (
           <>
-            <h2>Inicia sesión para aceptar.</h2>
+            <h2>Te invitaron a {invitation.organizationName}.</h2>
             <p className="login-intro">
-              Entra (o crea tu cuenta) con el mismo correo al que te enviaron la invitación y vuelve a abrir
-              este enlace.
+              Entrarás como <strong>{formatRole(invitation.role)}</strong> con el correo{" "}
+              <strong>{invitation.email}</strong>.
             </p>
-            <Link href="/" className="primary-login" style={{ textDecoration: "none" }}>
-              Ir al inicio de sesión <ArrowRight size={18} />
-            </Link>
           </>
         )}
 
-        {(status === "ready" || status === "accepting") && (
-          <>
-            <h2>Te invitaron a una organización.</h2>
-            <p className="login-intro">
-              Al aceptar, esta organización aparecerá en tu suite con los permisos que te asignaron.
+        {status === "register" && invitation && (
+          <form onSubmit={registerAndAccept}>
+            <label htmlFor="invite-name">Tu nombre completo</label>
+            <input
+              id="invite-name"
+              type="text"
+              autoComplete="name"
+              placeholder="Tu nombre y apellido"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              required
+            />
+
+            <label htmlFor="invite-password" style={{ marginTop: 14 }}>Crea tu contraseña</label>
+            <input
+              id="invite-password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Mínimo 8 caracteres"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={8}
+            />
+
+            {error && <p className="auth-message is-error">{error}</p>}
+
+            <button className="primary-login" type="submit" disabled={busy}>
+              {busy ? <LoaderCircle className="spin" size={18} /> : null}
+              Crear cuenta y entrar
+              {!busy ? <ArrowRight size={18} /> : null}
+            </button>
+
+            <p className="signup-hint">
+              ¿Ya tienes cuenta? <Link href="/">Inicia sesión</Link> y vuelve a abrir este enlace.
             </p>
-            <button className="primary-login" type="button" onClick={accept} disabled={status === "accepting"}>
-              {status === "accepting" ? <LoaderCircle className="spin" size={18} /> : null}
+          </form>
+        )}
+
+        {status === "ready" && invitation && (
+          <>
+            {error && <p className="auth-message is-error">{error}</p>}
+            <button className="primary-login" type="button" onClick={accept} disabled={busy}>
+              {busy ? <LoaderCircle className="spin" size={18} /> : null}
               Aceptar invitación
-              {status !== "accepting" ? <ArrowRight size={18} /> : null}
+              {!busy ? <ArrowRight size={18} /> : null}
             </button>
           </>
         )}
@@ -108,10 +213,10 @@ function InvitationFlow() {
 
         {status === "error" && (
           <>
-            <h2>No pudimos aceptar la invitación.</h2>
+            <h2>No pudimos completar la invitación.</h2>
             <p className="auth-message is-error">{error}</p>
             <Link href="/" className="primary-login" style={{ textDecoration: "none" }}>
-              Volver al inicio <ArrowRight size={18} />
+              Ir al inicio de sesión <ArrowRight size={18} />
             </Link>
           </>
         )}

@@ -671,6 +671,43 @@ export async function adminSetUserActive(client: SupabaseClient, userId: string,
   if (error) throw error;
 }
 
+export type InvitationPreview = {
+  email: string;
+  role: string;
+  organizationName: string;
+  expiresAt: string;
+};
+
+/** Datos mínimos de una invitación vigente, legibles sin sesión con el token. */
+export async function getInvitationPreview(client: SupabaseClient, token: string) {
+  const { data, error } = await client.rpc("get_invitation_preview", { p_token: token });
+  if (error) throw error;
+  return (data ?? null) as InvitationPreview | null;
+}
+
+/**
+ * Crea la cuenta de una persona invitada. A diferencia del registro
+ * normal, NO crea una organización: la persona entra a la que la invitó.
+ */
+export async function signUpFromInvitation(
+  client: SupabaseClient,
+  params: { fullName: string; email: string; password: string },
+) {
+  const { fullName, email, password } = params;
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: typeof window !== "undefined" ? window.location.href : undefined,
+    },
+  });
+
+  if (error) throw error;
+  return { needsEmailConfirmation: !data.session };
+}
+
 /** Acepta una invitación con el token del enlace. La usa /invitacion. */
 export async function acceptInvitation(client: SupabaseClient, token: string) {
   const { data, error } = await client.rpc("accept_invitation", { p_token_hash: token });
