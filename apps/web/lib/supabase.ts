@@ -64,7 +64,20 @@ function slugifyOrganizationName(name: string) {
   return base.length ? base : "organizacion";
 }
 
+/** El nombre es único sin distinguir mayúsculas ni acentos sobrantes. */
+export async function isOrganizationNameAvailable(client: SupabaseClient, name: string) {
+  const { data, error } = await client.rpc("organization_name_available", { p_name: name });
+  // Si la función todavía no existe en la base, no se bloquea el registro:
+  // el índice único sigue siendo la garantía real.
+  if (error) return true;
+  return Boolean(data);
+}
+
 export async function createOrganizationForCurrentUser(client: SupabaseClient, name: string, userId: string) {
+  if (!(await isOrganizationNameAvailable(client, name))) {
+    throw new Error("ORGANIZATION_NAME_TAKEN");
+  }
+
   const baseSlug = slugifyOrganizationName(name);
   let slug = baseSlug;
 
@@ -480,6 +493,10 @@ export function describeAdminError(error: unknown) {
     CANNOT_DEACTIVATE_SELF: "No puedes desactivar tu propia cuenta.",
     ROLE_CHANGE_REQUIRES_OWNER:
       "Ese cambio de propiedad lo debe hacer el dueño de la organización desde su cuenta.",
+    ORGANIZATION_NAME_TAKEN: "Ya existe una organización con ese nombre. Usa uno distinto.",
+    ORGANIZATION_HAS_NO_OWNER:
+      "Esta organización no tiene propietario activo. Asígnale uno en Ajustes antes de invitar gente.",
+    ACCOUNT_DISABLED: "Esa cuenta está desactivada. Reactívala desde Usuarios antes de continuar.",
   };
 
   for (const [code, message] of Object.entries(messages)) {
@@ -678,10 +695,17 @@ export type InvitationPreview = {
   expiresAt: string;
 };
 
-/** Datos mínimos de una invitación vigente, legibles sin sesión con el token. */
+/**
+ * Datos mínimos de una invitación vigente, legibles sin sesión con el token.
+ * Devuelve `undefined` si la función todavía no existe en la base, para que
+ * la pantalla pueda caer al flujo antiguo en vez de romperse.
+ */
 export async function getInvitationPreview(client: SupabaseClient, token: string) {
   const { data, error } = await client.rpc("get_invitation_preview", { p_token: token });
-  if (error) throw error;
+  if (error) {
+    if (error.code === "PGRST202") return undefined;
+    throw error;
+  }
   return (data ?? null) as InvitationPreview | null;
 }
 

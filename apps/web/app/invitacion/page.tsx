@@ -24,7 +24,12 @@ const errorMessages: Record<string, string> = {
     "Esta invitación es para otro correo. Cierra sesión y entra con el correo al que te la enviaron.",
   INVITATION_TOKEN_REQUIRED: "El enlace está incompleto.",
   UNAUTHENTICATED: "Necesitas iniciar sesión para aceptar la invitación.",
-  User_already_registered: "Ese correo ya tiene cuenta. Inicia sesión y vuelve a abrir este enlace.",
+  ACCOUNT_DISABLED: "Tu cuenta está desactivada. Pide a DAVALSY que la reactive.",
+  ORGANIZATION_HAS_NO_OWNER:
+    "Esa organización todavía no tiene propietario, así que no puede recibir miembros. Avísale a DAVALSY.",
+  USER_QUOTA_EXCEEDED:
+    "La organización llegó al máximo de usuarios de su plan. Pide que suban el plan antes de aceptar.",
+  USERS_FEATURE_NOT_ENABLED: "Esa organización no tiene habilitada la gestión de usuarios.",
 };
 
 function describe(error: unknown) {
@@ -63,8 +68,23 @@ function InvitationFlow() {
         ]);
         if (!active) return;
 
+        // undefined = la función de previsualización aún no existe en la
+        // base. Se cae al flujo anterior: con sesión se puede aceptar
+        // igual, y sin ella se pide iniciar sesión.
+        if (preview === undefined) {
+          if (sessionData.session) {
+            setStatus("ready");
+          } else {
+            setStatus("error");
+            setError(
+              "Inicia sesión con el correo al que te enviaron la invitación y vuelve a abrir este enlace.",
+            );
+          }
+          return;
+        }
+
         if (!preview) {
-          setError("Esta invitación ya no es válida o venció.");
+          setError("Esta invitación ya no es válida o venció. Pide una nueva a tu contacto en DAVALSY.");
           setStatus("error");
           return;
         }
