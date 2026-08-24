@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Boxes, Building2, ShieldUser, Users } from "lucide-react";
+import { ArrowLeft, Boxes, Building2, CreditCard, ShieldUser, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { BrandMark, LoadingScreen } from "@/components/suite-ui";
 
@@ -37,6 +37,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         <Link href="/admin/soluciones" className={pathname?.startsWith("/admin/soluciones") ? "active" : ""}>
           <Boxes size={15} /> Soluciones
+        </Link>
+        <Link href="/admin/planes" className={pathname?.startsWith("/admin/planes") ? "active" : ""}>
+          <CreditCard size={15} /> Planes
         </Link>
         <Link href="/admin/usuarios" className={pathname?.startsWith("/admin/usuarios") ? "active" : ""}>
           <Users size={15} /> Usuarios

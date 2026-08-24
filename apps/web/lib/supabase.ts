@@ -714,6 +714,100 @@ export async function adminDeleteOrganization(
   if (error) throw error;
 }
 
+// ── Edición de planes ───────────────────────────────────────────────
+
+export type AdminPlanDetailed = {
+  id: string;
+  name: string;
+  description: string;
+  tagline: string;
+  priceLabel: string;
+  basicQuota: number | null;
+  selfServe: boolean;
+  sortOrder: number;
+  organizations: number;
+};
+
+export type AdminPlanFeature = {
+  key: string;
+  name: string;
+  unit: string;
+  enabled: boolean;
+  limitValue: number | null;
+  isSolution: boolean;
+};
+
+export async function adminListPlansDetailed(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_plans_detailed");
+  if (error) throw error;
+  return (data ?? []) as AdminPlanDetailed[];
+}
+
+export async function adminUpsertPlan(
+  client: SupabaseClient,
+  input: {
+    id: string;
+    name: string;
+    description: string;
+    tagline: string;
+    priceLabel: string;
+    basicQuota: number | null;
+    selfServe: boolean;
+    sortOrder: number;
+  },
+) {
+  const { error } = await client.rpc("admin_upsert_plan", {
+    p_id: input.id,
+    p_name: input.name,
+    p_description: input.description,
+    p_tagline: input.tagline,
+    p_price_label: input.priceLabel,
+    p_basic_quota: input.basicQuota,
+    p_is_self_serve: input.selfServe,
+    p_sort_order: input.sortOrder,
+  });
+  if (error) throw error;
+}
+
+export async function adminDeletePlan(client: SupabaseClient, id: string) {
+  const { error } = await client.rpc("admin_delete_plan", { p_id: id });
+  if (error) throw error;
+}
+
+export async function adminGetPlanFeatures(client: SupabaseClient, planId: string) {
+  const { data, error } = await client.rpc("admin_get_plan_features", { p_plan_id: planId });
+  if (error) throw error;
+  return (data ?? []) as AdminPlanFeature[];
+}
+
+export async function adminSetPlanFeature(
+  client: SupabaseClient,
+  planId: string,
+  featureKey: string,
+  enabled: boolean,
+  limitValue: number | null,
+) {
+  const { error } = await client.rpc("admin_set_plan_feature", {
+    p_plan_id: planId,
+    p_feature_key: featureKey,
+    p_enabled: enabled,
+    p_limit_value: limitValue,
+  });
+  if (error) throw error;
+}
+
+export async function adminGetOrganizationSolutions(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("admin_get_organization_solutions", {
+    p_organization_id: organizationId,
+  });
+  if (error) throw error;
+  return data as {
+    quota: number | null;
+    selected: string[];
+    catalog: { id: string; name: string; pricingType: string }[];
+  };
+}
+
 export async function adminUpdateUserProfile(client: SupabaseClient, userId: string, fullName: string) {
   const { error } = await client.rpc("admin_update_user_profile", {
     p_user_id: userId,

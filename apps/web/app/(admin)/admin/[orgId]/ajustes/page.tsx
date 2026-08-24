@@ -3,10 +3,12 @@
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LoaderCircle, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, LoaderCircle, ShieldCheck, TriangleAlert } from "lucide-react";
 import {
   ACCESS_STATUS_OPTIONS,
   ORGANIZATION_STATUS_OPTIONS,
+  adminGetOrganizationSolutions,
+  setOrganizationSolutions,
   adminDeleteOrganization,
   adminListOrganizationMembers,
   adminListOrganizations,
@@ -52,17 +54,26 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
   const [status, setStatus] = useState("active");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [confirmName, setConfirmName] = useState("");
+  const [solutionQuota, setSolutionQuota] = useState<number | null>(null);
+  const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
+  const [solutionCatalog, setSolutionCatalog] = useState<
+    { id: string; name: string; pricingType: string }[]
+  >([]);
 
   async function load() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
     try {
-      const [organizations, planList, members] = await Promise.all([
+      const [organizations, planList, members, orgSolutions] = await Promise.all([
         adminListOrganizations(supabase),
         adminListPlans(supabase),
         adminListOrganizationMembers(supabase, orgId),
+        adminGetOrganizationSolutions(supabase, orgId),
       ]);
+      setSolutionQuota(orgSolutions.quota);
+      setSelectedSolutions(orgSolutions.selected ?? []);
+      setSolutionCatalog(orgSolutions.catalog ?? []);
       const found = organizations.find((org) => org.id === orgId) ?? null;
       setOrganization(found);
       setPlans(planList);
@@ -251,6 +262,68 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
               {busy === "plan" ? <LoaderCircle className="spin" size={16} /> : "Guardar plan"}
             </button>
           </form>
+
+          <div className="settings-card">
+            <div className="settings-card-head">
+              <div>
+                <h2>Soluciones contratadas</h2>
+                <p>
+                  {solutionQuota === null
+                    ? "Su plan no impone cupo: puede usar todas las básicas."
+                    : `Su plan incluye ${solutionQuota} ${solutionQuota === 1 ? "solución básica" : "soluciones básicas"}.`}{" "}
+                  Las de cobro aparte se activan desde la pestaña Permisos.
+                </p>
+              </div>
+            </div>
+
+            <div className="solution-picker">
+              {solutionCatalog
+                .filter((s) => s.pricingType === "basic")
+                .map((solution) => {
+                  const isOn = selectedSolutions.includes(solution.id);
+                  return (
+                    <button
+                      type="button"
+                      key={solution.id}
+                      className={`solution-option ${isOn ? "active" : ""}`}
+                      onClick={() =>
+                        setSelectedSolutions((current) =>
+                          current.includes(solution.id)
+                            ? current.filter((id) => id !== solution.id)
+                            : solutionQuota !== null && current.length >= solutionQuota
+                              ? [...current.slice(1), solution.id]
+                              : [...current, solution.id],
+                        )
+                      }
+                    >
+                      <span className="solution-option-check">{isOn && <Check size={13} />}</span>
+                      <span><strong>{solution.name}</strong></span>
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="plan-save-row">
+              <span>
+                {selectedSolutions.length}
+                {solutionQuota !== null ? ` de ${solutionQuota}` : ""} elegidas
+              </span>
+              <button
+                className="primary-login settings-submit"
+                type="button"
+                disabled={busy === "solutions"}
+                onClick={() =>
+                  run("solutions", async () => {
+                    const supabase = getSupabaseBrowserClient();
+                    if (!supabase) return;
+                    await setOrganizationSolutions(supabase, orgId, selectedSolutions);
+                  }, "Soluciones actualizadas.")
+                }
+              >
+                {busy === "solutions" ? <LoaderCircle className="spin" size={16} /> : "Guardar soluciones"}
+              </button>
+            </div>
+          </div>
 
           <form className="settings-card" onSubmit={submitStatus}>
             <div className="settings-card-head">
