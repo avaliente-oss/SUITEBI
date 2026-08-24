@@ -108,6 +108,48 @@ export async function completePendingOrganizationSetup(client: SupabaseClient) {
   await client.auth.updateUser({ data: { pending_organization_name: null } });
 }
 
+/** Traduce los errores de Supabase Auth, que llegan en inglés. */
+export function describeAuthError(error: unknown) {
+  const raw = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
+
+  if (raw.includes("invalid login credentials")) return "Correo o contraseña incorrectos.";
+  if (raw.includes("email not confirmed")) {
+    return "Falta confirmar tu correo. Busca el mensaje que te enviamos y abre el enlace.";
+  }
+  if (raw.includes("signups not allowed") || raw.includes("user not found")) {
+    return "No encontramos una cuenta con ese correo. Crea tu cuenta primero.";
+  }
+  if (raw.includes("already registered") || raw.includes("already been registered")) {
+    return "Ese correo ya tiene cuenta. Inicia sesión o recupera tu contraseña.";
+  }
+  if (raw.includes("rate limit") || raw.includes("too many requests")) {
+    return "Demasiados intentos seguidos. Espera un minuto y vuelve a probar.";
+  }
+  if (raw.includes("password should be")) return "La contraseña debe tener al menos 8 caracteres.";
+  if (raw.includes("unable to validate email") || raw.includes("invalid email")) {
+    return "Ese correo no parece válido.";
+  }
+  if (raw.includes("organization_name_taken")) {
+    return "Ya existe una organización con ese nombre. Usa uno distinto.";
+  }
+
+  return error instanceof Error && error.message ? error.message : "No pudimos completar la operación.";
+}
+
+export type OrganizationNameCheck = {
+  available: boolean;
+  reason: "OK" | "TAKEN" | "EMPTY";
+  similar: string[];
+};
+
+/** Verifica disponibilidad exacta y devuelve nombres parecidos como aviso. */
+export async function checkOrganizationName(client: SupabaseClient, name: string) {
+  const { data, error } = await client.rpc("check_organization_name", { p_name: name });
+  // Si la migración aún no está aplicada, no se bloquea el registro.
+  if (error) return null;
+  return data as OrganizationNameCheck;
+}
+
 export type PublicPlan = {
   id: string;
   name: string;

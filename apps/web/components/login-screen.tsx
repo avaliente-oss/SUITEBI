@@ -15,6 +15,8 @@ import {
   signUpWithOrganization,
   listPublicPlans,
   listBasicSolutions,
+  checkOrganizationName,
+  describeAuthError,
   type PublicPlan,
   type BasicSolution,
 } from "@/lib/supabase";
@@ -38,6 +40,9 @@ export function LoginScreen({
   const [basicSolutions, setBasicSolutions] = useState<BasicSolution[]>([]);
   const [planId, setPlanId] = useState("free");
   const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
+  const [nameTaken, setNameTaken] = useState(false);
+  const [similarNames, setSimilarNames] = useState<string[]>([]);
+  const [checkingName, setCheckingName] = useState(false);
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState(error);
   const [busy, setBusy] = useState(false);
@@ -85,6 +90,27 @@ export function LoginScreen({
     });
   }
 
+  // Se consulta al salir del campo, no en cada tecla: una llamada por
+  // nombre escrito en vez de una por letra.
+  async function validateOrganizationName() {
+    const value = organizationName.trim();
+    if (!supabase || value.length < 2) {
+      setNameTaken(false);
+      setSimilarNames([]);
+      return;
+    }
+
+    setCheckingName(true);
+    try {
+      const result = await checkOrganizationName(supabase, value);
+      if (!result) return;
+      setNameTaken(!result.available);
+      setSimilarNames(result.similar ?? []);
+    } finally {
+      setCheckingName(false);
+    }
+  }
+
   function switchScreen(next: "login" | "signup") {
     setScreen(next);
     setFormError("");
@@ -104,10 +130,17 @@ export function LoginScreen({
       if (mode === "magic") {
         const { error: magicError } = await supabase.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: `${window.location.origin}/lobby`,
+            // Sin esto, Supabase crearía una cuenta para cualquier correo
+            // que se escriba aquí: usuarios fantasma sin organización.
+            shouldCreateUser: false,
+          },
         });
         if (magicError) throw magicError;
-        setMessage("Te enviamos un enlace seguro. Revisa tu correo para entrar.");
+        setMessage(
+          "Te enviamos un enlace seguro. Revisa tu correo — el enlace sirve una sola vez y vence pronto.",
+        );
       } else {
         const { error: passwordError } = await supabase.auth.signInWithPassword({
           email,
@@ -117,9 +150,7 @@ export function LoginScreen({
         await onAuthenticated();
       }
     } catch (submitError) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : "No pudimos iniciar tu sesión.",
-      );
+      setFormError(describeAuthError(submitError));
     } finally {
       setBusy(false);
       submitLockRef.current = false;
@@ -164,6 +195,16 @@ export function LoginScreen({
       return;
     }
 
+    // Última verificación por si no pasó por el evento de salida del campo.
+    if (supabase) {
+      const check = await checkOrganizationName(supabase, organizationName.trim());
+      if (check && !check.available) {
+        setNameTaken(true);
+        setFormError("Ya existe una organización con ese nombre. Elige otro o inicia sesión.");
+        return;
+      }
+    }
+
     submitLockRef.current = true;
     setBusy(true);
     setFormError("");
@@ -194,9 +235,7 @@ export function LoginScreen({
         await onAuthenticated();
       }
     } catch (submitError) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : "No pudimos crear tu cuenta.",
-      );
+      setFormError(describeAuthError(submitError));
     } finally {
       setBusy(false);
       submitLockRef.current = false;
@@ -362,11 +401,40 @@ export function LoginScreen({
                   autoComplete="organization"
                   placeholder="Ej. Mi Empresa SA de CV"
                   value={organizationName}
-                  onChange={(event) => setOrganizationName(event.target.value)}
+                  onChange={(event) => {
+                    setOrganizationName(event.target.value);
+                    setNameTaken(false);
+                    setSimilarNames([]);
+                  }}
+                  onBlur={validateOrganizationName}
                   required
                   disabled={!isSupabaseConfigured}
+                  aria-invalid={nameTaken}
                 />
               </div>
+
+              {checkingName && <p className="signup-hint">Verificando el nombre…</p>}
+
+              {nameTaken && (
+                <p className="auth-message is-error">
+                  Ya existe una organización con ese nombre. Si es la tuya,{" "}
+                  <button type="button" className="inline-link" onClick={() => switchScreen("login")}>
+                    inicia sesión
+                  </button>{" "}
+                  en vez de crear otra.
+                </p>
+              )}
+
+              {!nameTaken && similarNames.length > 0 && (
+                <p className="auth-message is-warning">
+                  ¿Seguro que no te has registrado ya? Existe{" "}
+                  {similarNames.length === 1 ? "una organización parecida" : "organizaciones parecidas"}:{" "}
+                  <strong>{similarNames.slice(0, 3).join(", ")}</strong>.{" "}
+                  <button type="button" className="inline-link" onClick={() => switchScreen("login")}>
+                    Iniciar sesión
+                  </button>
+                </p>
+              )}
 
               <label htmlFor="signup-email">Correo de trabajo</label>
               <div className="input-wrap">

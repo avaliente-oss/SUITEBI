@@ -472,6 +472,8 @@ button:disabled {
 
 .auth-message { background: rgba(99, 169, 45, .12); border-radius: 8px; color: var(--success-text); font-size: 12px; line-height: 1.5; margin: 14px 0 -8px; padding: 10px 12px; }
 .auth-message.is-error { background: rgba(230, 57, 70, .12); color: var(--danger-text); }
+.auth-message.is-warning { background: rgba(214, 158, 46, .14); color: var(--warning-text); }
+.inline-link { background: none; border: 0; color: inherit; font: inherit; font-weight: 700; padding: 0; text-decoration: underline; }
 
 .demo-access { margin-top: 25px; text-align: center; }
 .demo-divider { align-items: center; color: var(--muted); display: flex; font-size: 8px; font-weight: 800; gap: 12px; letter-spacing: .18em; }
