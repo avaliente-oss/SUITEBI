@@ -976,6 +976,8 @@ button:disabled {
 
 .admin-price-row { grid-template-columns: 1fr auto auto; }
 
+.plan-blocked { color: var(--muted); font-size: 10.5px; line-height: 1.45; }
+
 .interval-switch { display: inline-flex; gap: 3px; }
 .interval-switch button { background: var(--white); border: 1px solid var(--line); border-radius: 7px; color: var(--muted); font-size: 10.5px; font-weight: 700; padding: 3px 9px; }
 .interval-switch button.active { background: var(--chrome); border-color: var(--chrome); color: var(--on-chrome); }

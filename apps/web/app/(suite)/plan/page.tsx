@@ -5,17 +5,23 @@ import { Check, LoaderCircle, Zap } from "lucide-react";
 import { useSuite } from "@/lib/suite-context";
 import {
   errorText,
+  describeAdminError,
+  describePlanBlock,
   getOrganizationSolutions,
   getSupabaseBrowserClient,
-  listPublicPlans,
+  orgChangePlan,
+  orgPlanChangePreview,
   setOrganizationSolutions,
-  type PublicPlan,
+  type BillingInterval,
+  type PlanChangePreview,
 } from "@/lib/supabase";
 
 export default function PlanPage() {
   const { organization, solutions, setToast, isDemo } = useSuite();
 
-  const [plans, setPlans] = useState<PublicPlan[]>([]);
+  const [preview, setPreview] = useState<PlanChangePreview | null>(null);
+  const [interval, setInterval] = useState<BillingInterval>("month");
+  const [changing, setChanging] = useState<string | null>(null);
   const [quota, setQuota] = useState<number | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   // En modo demo no hay nada que traer, así que arranca ya cargado.
@@ -32,10 +38,13 @@ export default function PlanPage() {
     if (!supabase) return;
 
     let cancelled = false;
-    Promise.all([listPublicPlans(supabase), getOrganizationSolutions(supabase, organization.id)])
-      .then(([planList, current]) => {
+    Promise.all([
+      orgPlanChangePreview(supabase, organization.id, interval),
+      getOrganizationSolutions(supabase, organization.id),
+    ])
+      .then(([planPreview, current]) => {
         if (cancelled) return;
-        setPlans(planList);
+        setPreview(planPreview);
         setQuota(current.quota);
         setSelected(current.selected);
         setLoaded(true);
@@ -47,7 +56,7 @@ export default function PlanPage() {
     return () => {
       cancelled = true;
     };
-  }, [organization.id, isDemo]);
+  }, [organization.id, isDemo, interval]);
 
   function toggle(id: string) {
     setSelected((current) => {
@@ -55,6 +64,36 @@ export default function PlanPage() {
       if (quota !== null && current.length >= quota) return [...current.slice(1), id];
       return [...current, id];
     });
+  }
+
+  async function changePlan(planId: string, planName: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    if (!window.confirm(`¿Cambiar al plan ${planName}? Tu acceso se ajusta de inmediato.`)) return;
+
+    setChanging(planId);
+    try {
+      const result = await orgChangePlan(supabase, organization.id, planId, interval);
+      const recortadas = result?.solucionesRecortadas ?? 0;
+      setToast(
+        recortadas > 0
+          ? `Listo, ahora estás en ${planName}. Se quitaron ${recortadas} ${recortadas === 1 ? "solución que ya no cabía" : "soluciones que ya no cabían"} en tu cupo.`
+          : `Listo, ahora estás en ${planName}. Recarga para ver los cambios.`,
+      );
+      // Se recargan cupo y selección, que pudieron cambiar con el plan.
+      const [nuevoPreview, actuales] = await Promise.all([
+        orgPlanChangePreview(supabase, organization.id, interval),
+        getOrganizationSolutions(supabase, organization.id),
+      ]);
+      setPreview(nuevoPreview);
+      setQuota(actuales.quota);
+      setSelected(actuales.selected);
+    } catch (error) {
+      setToast(describeAdminError(error));
+    } finally {
+      setChanging(null);
+    }
   }
 
   async function save() {
@@ -177,35 +216,63 @@ export default function PlanPage() {
           <section className="settings-card plan-section">
             <div className="settings-card-head">
               <div>
-                <h2>Planes disponibles</h2>
-                <p>El cambio de plan todavía se hace con un asesor: aún no hay cobro en línea.</p>
+                <h2>Cambiar de plan</h2>
+                <p>
+                  {preview?.canManage
+                    ? "Al cambiar, tu acceso se ajusta de inmediato."
+                    : "Sólo el propietario de la organización puede cambiar el plan."}
+                </p>
               </div>
+              <span className="interval-switch">
+                <button
+                  type="button"
+                  className={interval === "month" ? "active" : ""}
+                  onClick={() => setInterval("month")}
+                >
+                  Mensual
+                </button>
+                <button
+                  type="button"
+                  className={interval === "year" ? "active" : ""}
+                  onClick={() => setInterval("year")}
+                >
+                  Anual
+                </button>
+              </span>
             </div>
+
             <div className="plan-picker">
-              {plans.map((plan) => (
-                <div key={plan.id} className={`plan-option ${plan.id === organization.planId ? "active" : ""}`}>
-                  <span className="plan-option-top">
-                    <strong>{plan.name}</strong>
-                    <em>{plan.priceLabel}</em>
-                  </span>
-                  <span className="plan-option-note">{plan.tagline || plan.description}</span>
-                  {plan.id !== organization.planId && (
-                    <button
-                      type="button"
-                      className="addon-request"
-                      onClick={() =>
-                        setToast(
-                          plan.selfServe
-                            ? `Escríbenos para cambiar al plan ${plan.name}.`
-                            : `Un asesor te contactará para armar tu plan ${plan.name}.`,
-                        )
-                      }
-                    >
-                      {plan.selfServe ? "Cambiar a este plan" : "Hablar con DAVALSY"}
-                    </button>
-                  )}
-                </div>
-              ))}
+              {preview?.plans.map((plan) => {
+                const motivo = describePlanBlock(plan.blockedReason, {
+                  activeMembers: preview.activeMembers,
+                  userLimit: plan.userLimit,
+                });
+
+                return (
+                  <div key={plan.id} className={`plan-option ${plan.isCurrent ? "active" : ""}`}>
+                    <span className="plan-option-top">
+                      <strong>{plan.name}</strong>
+                      <em>{plan.priceLabel}</em>
+                    </span>
+                    <span className="plan-option-note">{plan.tagline}</span>
+
+                    {plan.isCurrent ? (
+                      <span className="status-chip status-full">Tu plan actual</span>
+                    ) : motivo ? (
+                      <span className="plan-blocked">{motivo}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="addon-request"
+                        disabled={!preview.canManage || changing === plan.id}
+                        onClick={() => changePlan(plan.id, plan.name)}
+                      >
+                        {changing === plan.id ? <LoaderCircle className="spin" size={14} /> : "Cambiar a este plan"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         </>

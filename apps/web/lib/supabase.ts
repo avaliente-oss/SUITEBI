@@ -358,6 +358,71 @@ export async function signUpWithOrganization(
   return { needsEmailConfirmation: true };
 }
 
+export type PlanChangeOption = {
+  id: string;
+  name: string;
+  tagline: string;
+  basicQuota: number | null;
+  userLimit: number | null;
+  priceLabel: string;
+  amountCents: number | null;
+  isCurrent: boolean;
+  blockedReason: "CONTACT_SALES" | "TOO_MANY_MEMBERS" | "PAYMENT_REQUIRED" | null;
+};
+
+export type PlanChangePreview = {
+  currentPlan: string;
+  activeMembers: number;
+  selectedSolutions: number;
+  canManage: boolean;
+  plans: PlanChangeOption[];
+};
+
+export async function orgPlanChangePreview(
+  client: SupabaseClient,
+  organizationId: string,
+  interval: BillingInterval = "month",
+) {
+  const { data, error } = await client.rpc("org_plan_change_preview", {
+    p_organization_id: organizationId,
+    p_billing_interval: interval,
+  });
+  if (error) throw error;
+  return data as PlanChangePreview;
+}
+
+export async function orgChangePlan(
+  client: SupabaseClient,
+  organizationId: string,
+  planId: string,
+  interval: BillingInterval,
+) {
+  const { data, error } = await client.rpc("org_change_plan", {
+    p_organization_id: organizationId,
+    p_plan_id: planId,
+    p_billing_interval: interval,
+  });
+  if (error) throw error;
+  return data as { planId: string; solucionesRecortadas: number };
+}
+
+/** Explica en español por qué un plan no está disponible. */
+export function describePlanBlock(
+  reason: PlanChangeOption["blockedReason"],
+  context: { activeMembers: number; userLimit: number | null },
+) {
+  switch (reason) {
+    case "CONTACT_SALES":
+      return "Se arma con un asesor de DAVALSY.";
+    case "TOO_MANY_MEMBERS":
+      return `Tienes ${context.activeMembers} miembros activos y este plan permite ${context.userLimit}. Quita miembros en Equipo y accesos antes de cambiarte.`;
+    case "PAYMENT_REQUIRED":
+      return "Necesita un método de pago activo. Escríbenos para contratarlo.";
+    default:
+      return "";
+  }
+}
+
 export async function getOrganizationSolutions(client: SupabaseClient, organizationId: string) {
   const { data, error } = await client.rpc("get_organization_solutions", {
     p_organization_id: organizationId,
@@ -682,6 +747,12 @@ export function describeAdminError(error: unknown) {
     USER_OWNS_SOLO_ORGS:
       "Es propietaria de organizaciones donde es la única integrante. Confirma para desactivarlas junto con su cuenta.",
     INVITATION_NOT_FOUND: "Esa invitación ya no existe.",
+    PAYMENT_REQUIRED:
+      "Ese plan requiere un método de pago activo. Escríbenos para contratarlo.",
+    CONTACT_SALES: "Ese plan se arma con un asesor de DAVALSY.",
+    TOO_MANY_MEMBERS:
+      "Tienes más miembros activos de los que permite ese plan. Quita algunos en Equipo y accesos antes de cambiarte.",
+    INVALID_INTERVAL: "Periodicidad no válida.",
   };
 
   for (const [code, message] of Object.entries(messages)) {
