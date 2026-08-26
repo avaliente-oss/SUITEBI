@@ -26,7 +26,7 @@ const emptyForm = {
   sortOrder: 100,
   // El monto se captura en pesos y se convierte a centavos al guardar.
   price: "" as string,
-  currency: "MXN",
+  currency: "COP",
   billingInterval: "month" as "month" | "year",
 };
 
@@ -106,7 +106,7 @@ export default function AdminPlanesPage() {
       selfServe: plan.selfServe,
       sortOrder: plan.sortOrder,
       price: plan.priceAmountCents === null ? "" : String(plan.priceAmountCents / 100),
-      currency: plan.currency || "MXN",
+      currency: plan.currency || "COP",
       billingInterval: plan.billingInterval || "month",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });

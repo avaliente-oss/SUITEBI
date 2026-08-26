@@ -762,7 +762,8 @@ export async function adminDeleteOrganization(
 
 // ── Edición de planes ───────────────────────────────────────────────
 
-export const CURRENCY_OPTIONS = ["MXN", "COP", "USD"] as const;
+/** COP primero: la entidad que factura está en Colombia. */
+export const CURRENCY_OPTIONS = ["COP", "USD", "MXN"] as const;
 
 export type AdminPlanDetailed = {
   id: string;
