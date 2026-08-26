@@ -976,6 +976,13 @@ button:disabled {
 
 .admin-price-row { grid-template-columns: 1fr auto auto; }
 
+/* Chat de soporte (LeadConnector)
+   El widget se renderiza en el flujo del documento, sin burbuja propia:
+   por eso vive en su propia pestaña y se le da un marco contenido. */
+.soporte-marco { background: var(--white); border: 1px solid var(--line); border-radius: 12px; margin-top: 22px; min-height: 620px; overflow: hidden; }
+.soporte-marco chat-widget { display: block; width: 100%; }
+.soporte-cargando { color: var(--muted); font-size: 13px; padding: 40px 22px; text-align: center; }
+
 .plan-blocked { color: var(--muted); font-size: 10.5px; line-height: 1.45; }
 
 .plan-confirm { background: var(--paper); border: 1px solid var(--accent-dark); border-radius: 11px; margin-top: 18px; padding: 18px; }
