@@ -366,6 +366,7 @@ export type PlanChangeOption = {
   userLimit: number | null;
   priceLabel: string;
   amountCents: number | null;
+  currency: string | null;
   isCurrent: boolean;
   blockedReason: "CONTACT_SALES" | "TOO_MANY_MEMBERS" | "PAYMENT_REQUIRED" | null;
 };
@@ -375,6 +376,15 @@ export type PlanChangePreview = {
   activeMembers: number;
   selectedSolutions: number;
   canManage: boolean;
+  current: {
+    planId: string;
+    name: string;
+    billingInterval: BillingInterval;
+    amountCents: number | null;
+    priceLabel: string;
+    basicQuota: number | null;
+    userLimit: number | null;
+  };
   plans: PlanChangeOption[];
 };
 

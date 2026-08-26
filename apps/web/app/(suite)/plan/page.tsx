@@ -22,6 +22,7 @@ export default function PlanPage() {
   const [preview, setPreview] = useState<PlanChangePreview | null>(null);
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [changing, setChanging] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [quota, setQuota] = useState<number | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   // En modo demo no hay nada que traer, así que arranca ya cargado.
@@ -66,12 +67,14 @@ export default function PlanPage() {
     });
   }
 
-  async function changePlan(planId: string, planName: string) {
+  async function changePlan(planId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
-    if (!window.confirm(`¿Cambiar al plan ${planName}? Tu acceso se ajusta de inmediato.`)) return;
+    const destino = preview?.plans.find((p) => p.id === planId);
+    const planName = destino?.name ?? planId;
 
+    setConfirming(null);
     setChanging(planId);
     try {
       const result = await orgChangePlan(supabase, organization.id, planId, interval);
@@ -265,7 +268,7 @@ export default function PlanPage() {
                         type="button"
                         className="addon-request"
                         disabled={!preview.canManage || changing === plan.id}
-                        onClick={() => changePlan(plan.id, plan.name)}
+                        onClick={() => setConfirming(plan.id)}
                       >
                         {changing === plan.id ? <LoaderCircle className="spin" size={14} /> : "Cambiar a este plan"}
                       </button>
@@ -274,6 +277,84 @@ export default function PlanPage() {
                 );
               })}
             </div>
+
+            {confirming && preview && (() => {
+              const destino = preview.plans.find((p) => p.id === confirming);
+              if (!destino) return null;
+
+              const actual = preview.current;
+              const antes = actual.amountCents;
+              const despues = destino.amountCents;
+              const hayCifras = antes !== null && despues !== null;
+              const diferencia = hayCifras ? despues! - antes! : 0;
+
+              const solucionesSobrantes =
+                destino.basicQuota !== null && preview.selectedSolutions > destino.basicQuota
+                  ? preview.selectedSolutions - destino.basicQuota
+                  : 0;
+
+              return (
+                <div className="plan-confirm">
+                  <h3>Cambiar de {actual.name} a {destino.name}</h3>
+
+                  <div className="plan-confirm-row">
+                    <span>Precio</span>
+                    <strong>
+                      {actual.priceLabel} <span aria-hidden>→</span> {destino.priceLabel}
+                    </strong>
+                  </div>
+
+                  {hayCifras && diferencia !== 0 && (
+                    <p className={`plan-confirm-delta ${diferencia > 0 ? "is-up" : "is-down"}`}>
+                      {diferencia > 0
+                        ? `Tu cobro sube ${((diferencia) / 100).toLocaleString("es-CO", { minimumFractionDigits: 2 })} ${destino.currency ?? ""}.`
+                        : `Tu cobro baja ${((-diferencia) / 100).toLocaleString("es-CO", { minimumFractionDigits: 2 })} ${destino.currency ?? ""}.`}
+                    </p>
+                  )}
+
+                  <div className="plan-confirm-row">
+                    <span>Soluciones incluidas</span>
+                    <strong>
+                      {actual.basicQuota ?? "todas"} <span aria-hidden>→</span> {destino.basicQuota ?? "todas"}
+                    </strong>
+                  </div>
+
+                  <div className="plan-confirm-row">
+                    <span>Máximo de usuarios</span>
+                    <strong>
+                      {actual.userLimit ?? "sin límite"} <span aria-hidden>→</span> {destino.userLimit ?? "sin límite"}
+                    </strong>
+                  </div>
+
+                  {solucionesSobrantes > 0 && (
+                    <p className="auth-message is-warning">
+                      Se {solucionesSobrantes === 1 ? "quitará" : "quitarán"} {solucionesSobrantes}{" "}
+                      {solucionesSobrantes === 1 ? "solución" : "soluciones"} de tu selección actual, porque ya no
+                      {solucionesSobrantes === 1 ? " cabe" : " caben"} en el cupo del plan nuevo.
+                    </p>
+                  )}
+
+                  <p className="signup-hint">
+                    El acceso se ajusta de inmediato. El cobro con el importe nuevo aplica a partir del siguiente
+                    periodo.
+                  </p>
+
+                  <div className="plan-confirm-actions">
+                    <button
+                      type="button"
+                      className="primary-login settings-submit"
+                      disabled={changing === destino.id}
+                      onClick={() => changePlan(destino.id)}
+                    >
+                      {changing === destino.id ? <LoaderCircle className="spin" size={16} /> : "Confirmar cambio"}
+                    </button>
+                    <button type="button" className="admin-solution-cancel" onClick={() => setConfirming(null)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </section>
         </>
       )}
