@@ -2,9 +2,10 @@
 
 import { use, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Ban, Check, Copy, LoaderCircle, Mail, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { ArrowLeft, Ban, Check, Copy, KeyRound, LoaderCircle, Mail, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import {
   ORGANIZATION_ROLE_OPTIONS,
+  adminAddMember,
   adminCreateInvitation,
   adminListInvitations,
   adminListOrganizationMembers,
@@ -14,6 +15,7 @@ import {
   adminSetMemberStatus,
   describeAdminError,
   getSupabaseBrowserClient,
+  requestPasswordReset,
   type AdminInvitation,
   type AdminMember,
   type AdminOrganizationSummary,
@@ -34,6 +36,9 @@ export default function AdminOrganizationMembersPage({ params }: { params: Promi
   const [inviteRole, setInviteRole] = useState<string>("viewer");
   const [inviting, setInviting] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [addEmail, setAddEmail] = useState("");
+  const [addRole, setAddRole] = useState<string>("viewer");
+  const [adding, setAdding] = useState(false);
 
   async function load() {
     const supabase = getSupabaseBrowserClient();
@@ -86,6 +91,26 @@ export default function AdminOrganizationMembersPage({ params }: { params: Promi
       setError(describeAdminError(err));
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function submitAddMember(event: FormEvent) {
+    event.preventDefault();
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setError("");
+    setNotice("");
+    setAdding(true);
+    try {
+      await adminAddMember(supabase, orgId, addEmail, addRole);
+      setAddEmail("");
+      await load();
+      setNotice("Listo, ya forma parte de la organización.");
+    } catch (err) {
+      setError(describeAdminError(err));
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -182,6 +207,27 @@ export default function AdminOrganizationMembersPage({ params }: { params: Promi
                 </div>
 
                 <div className="admin-feature-actions">
+                  {member.email && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      title="Le envía un correo para que defina una contraseña nueva"
+                      onClick={() => {
+                        if (!window.confirm(`¿Enviar a ${member.email} un enlace para cambiar su contraseña?`)) return;
+                        runAction(
+                          member.userId,
+                          async () => {
+                            const supabase = getSupabaseBrowserClient();
+                            if (!supabase) return;
+                            await requestPasswordReset(supabase, member.email!);
+                          },
+                          "Enlace enviado. La persona debe abrirlo desde su correo.",
+                        );
+                      }}
+                    >
+                      <KeyRound size={13} /> Contraseña
+                    </button>
+                  )}
                   {!locked && member.status === "active" && (
                     <button
                       type="button"
@@ -249,7 +295,44 @@ export default function AdminOrganizationMembersPage({ params }: { params: Promi
         </div>
       )}
 
-      <h2 className="admin-section-title">Invitar a alguien</h2>
+      <h2 className="admin-section-title">Agregar a alguien que ya tiene cuenta</h2>
+
+      <form className="settings-card admin-invite-form" onSubmit={submitAddMember}>
+        <div className="settings-card-head">
+          <span className="settings-icon"><UserPlus size={17} /></span>
+          <div>
+            <h2>Asignación directa</h2>
+            <p>Entra de inmediato, sin enlace ni confirmación. Si aún no tiene cuenta, usa la invitación de abajo.</p>
+          </div>
+        </div>
+
+        <div className="settings-form admin-invite-grid">
+          <label>
+            Correo
+            <input
+              required
+              type="email"
+              placeholder="persona@empresa.com"
+              value={addEmail}
+              onChange={(event) => setAddEmail(event.target.value)}
+            />
+          </label>
+          <label>
+            Rol
+            <select value={addRole} onChange={(event) => setAddRole(event.target.value)}>
+              {ORGANIZATION_ROLE_OPTIONS.map((role) => (
+                <option key={role} value={role}>{formatRole(role)}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <button className="primary-login settings-submit" type="submit" disabled={adding}>
+          {adding ? <LoaderCircle className="spin" size={16} /> : "Agregar a la organización"}
+        </button>
+      </form>
+
+      <h2 className="admin-section-title">Invitar a alguien sin cuenta</h2>
 
       <form className="settings-card admin-invite-form" onSubmit={submitInvite}>
         <div className="settings-card-head">

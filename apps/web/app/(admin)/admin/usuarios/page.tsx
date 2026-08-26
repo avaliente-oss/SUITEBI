@@ -2,9 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Ban, Check, LoaderCircle, Pencil, Search, ShieldUser, Trash2, UserPlus } from "lucide-react";
+import { Ban, Building2, Check, KeyRound, LoaderCircle, Pencil, Search, ShieldUser, Trash2, UserPlus } from "lucide-react";
 import {
+  ORGANIZATION_ROLE_OPTIONS,
+  adminAddMember,
   adminAddPlatformAdmin,
+  adminListOrganizations,
   adminListPlatformAdmins,
   adminRemovePlatformAdmin,
   adminSearchUsers,
@@ -12,6 +15,8 @@ import {
   adminUpdateUserProfile,
   describeAdminError,
   getSupabaseBrowserClient,
+  requestPasswordReset,
+  type AdminOrganizationSummary,
   type AdminPlatformAdmin,
   type AdminUserSearchResult,
 } from "@/lib/supabase";
@@ -30,6 +35,10 @@ export default function AdminUsuariosPage() {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [busyUser, setBusyUser] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<AdminOrganizationSummary[]>([]);
+  const [assigningUser, setAssigningUser] = useState<string | null>(null);
+  const [assignOrg, setAssignOrg] = useState("");
+  const [assignRole, setAssignRole] = useState<string>("viewer");
 
   async function loadUsers(search: string) {
     const supabase = getSupabaseBrowserClient();
@@ -56,10 +65,24 @@ export default function AdminUsuariosPage() {
     }
   }
 
+  async function loadOrganizations() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    try {
+      const list = await adminListOrganizations(supabase);
+      setOrganizations(list);
+      if (list.length && !assignOrg) setAssignOrg(list[0].id);
+    } catch {
+      /* La lista de organizaciones sólo alimenta el selector de asignación. */
+    }
+  }
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- ambas cargas se reutilizan tras cada acción
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- las cargas se reutilizan tras cada acción
     loadUsers("");
     loadAdmins();
+    loadOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function submitSearch(event: FormEvent) {
@@ -93,6 +116,35 @@ export default function AdminUsuariosPage() {
       },
       "Nombre actualizado.",
     ).then(() => setEditingUser(null));
+  }
+
+  function assignToOrganization(user: AdminUserSearchResult) {
+    if (!user.email || !assignOrg) return;
+    runUserAction(
+      user.userId,
+      async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        await adminAddMember(supabase, assignOrg, user.email!, assignRole);
+      },
+      "Usuario asignado a la organización.",
+    ).then(() => setAssigningUser(null));
+  }
+
+  function sendPasswordReset(user: AdminUserSearchResult) {
+    if (!user.email) return;
+    if (!window.confirm(`¿Enviar a ${user.email} un enlace para cambiar su contraseña?`)) return;
+
+    runUserAction(
+      user.userId,
+      async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        // Sólo dispara el correo: no cambia ni revela la contraseña actual.
+        await requestPasswordReset(supabase, user.email!);
+      },
+      "Enlace enviado. La persona debe abrirlo desde su correo.",
+    );
   }
 
   function toggleActive(user: AdminUserSearchResult) {
@@ -230,10 +282,45 @@ export default function AdminUsuariosPage() {
                 >
                   <Pencil size={13} /> Nombre
                 </button>
+                <button
+                  type="button"
+                  className={assigningUser === user.userId ? "active" : ""}
+                  disabled={busyUser === user.userId}
+                  onClick={() => setAssigningUser(assigningUser === user.userId ? null : user.userId)}
+                >
+                  <Building2 size={13} /> Asignar
+                </button>
+                <button type="button" disabled={busyUser === user.userId} onClick={() => sendPasswordReset(user)}>
+                  <KeyRound size={13} /> Contraseña
+                </button>
                 <button type="button" disabled={busyUser === user.userId} onClick={() => toggleActive(user)}>
                   {user.isActive ? <><Ban size={13} /> Desactivar</> : <><Check size={13} /> Reactivar</>}
                 </button>
               </div>
+
+              {assigningUser === user.userId && (
+                <div className="admin-assign-row">
+                  <select value={assignOrg} onChange={(e) => setAssignOrg(e.target.value)}>
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                  </select>
+                  <select value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
+                    {ORGANIZATION_ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>{formatRole(role)}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="admin-primary-button"
+                    disabled={busyUser === user.userId || !assignOrg}
+                    onClick={() => assignToOrganization(user)}
+                  >
+                    {busyUser === user.userId ? <LoaderCircle className="spin" size={14} /> : "Agregar"}
+                  </button>
+                  <button type="button" onClick={() => setAssigningUser(null)}>Cancelar</button>
+                </div>
+              )}
             </div>
           ))}
 

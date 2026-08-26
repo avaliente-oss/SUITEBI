@@ -584,6 +584,21 @@ export async function adminSetMemberStatus(
   if (error) throw error;
 }
 
+/** Agrega directamente a alguien que ya tiene cuenta, sin invitación. */
+export async function adminAddMember(
+  client: SupabaseClient,
+  organizationId: string,
+  email: string,
+  role: string,
+) {
+  const { error } = await client.rpc("admin_add_member", {
+    p_organization_id: organizationId,
+    p_email: email,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
 export async function adminListInvitations(client: SupabaseClient, organizationId: string) {
   const { data, error } = await client.rpc("admin_list_invitations", {
     p_organization_id: organizationId,
