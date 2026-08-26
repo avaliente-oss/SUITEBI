@@ -8,7 +8,6 @@ import {
   BookOpen,
   Check,
   ChevronDown,
-  CircleHelp,
   CreditCard,
   GalleryHorizontalEnd,
   Headphones,
@@ -133,9 +132,12 @@ export function SuiteShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="sidebar-support">
-          <button onClick={() => notReady("El centro de ayuda")}><Headphones size={17} /> Centro de ayuda</button>
-          <Link href="/soporte" className={pathname === "/soporte" ? "active" : ""}>
-            <CircleHelp size={17} /> Hablar con DAVALSY
+          <Link
+            href="/soporte"
+            className={`support-cta ${pathname === "/soporte" ? "active" : ""}`}
+            onClick={() => setMobileNav(false)}
+          >
+            <Headphones size={17} /> Hablar con DAVALSY
           </Link>
         </div>
 
