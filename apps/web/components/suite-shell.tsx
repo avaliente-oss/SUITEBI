@@ -27,6 +27,7 @@ import { formatRole } from "@/lib/suite-data";
 import { useAuth } from "@/lib/auth-context";
 import { useSuite } from "@/lib/suite-context";
 import { Avatar, BrandMark } from "@/components/suite-ui";
+import { isSupportChatConfigured, openSupportChat } from "@/components/support-chat";
 
 type NavItem = {
   href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan" | "/equipo";
@@ -69,6 +70,27 @@ export function SuiteShell({ children }: { children: ReactNode }) {
 
   function notReady(label: string) {
     setToast(`${label} todavía no está disponible. Lo estamos construyendo.`);
+  }
+
+  async function abrirSoporte() {
+    if (!isSupportChatConfigured) {
+      notReady("El chat con DAVALSY");
+      return;
+    }
+
+    const abierto = await openSupportChat({
+      email: viewer.email,
+      fullName: viewer.fullName,
+      organizationName: organization.name,
+      organizationId: organization.id,
+      planName: organization.planName,
+      role: organization.role,
+      screen: pathname,
+    });
+
+    if (!abierto) {
+      setToast("No pudimos abrir el chat. Escríbenos a soporte@davalsy.com.");
+    }
   }
 
   return (
@@ -133,7 +155,7 @@ export function SuiteShell({ children }: { children: ReactNode }) {
 
         <div className="sidebar-support">
           <button onClick={() => notReady("El centro de ayuda")}><Headphones size={17} /> Centro de ayuda</button>
-          <button onClick={() => notReady("El chat con DAVALSY")}><CircleHelp size={17} /> Hablar con DAVALSY</button>
+          <button onClick={abrirSoporte}><CircleHelp size={17} /> Hablar con DAVALSY</button>
         </div>
 
         <div className="sidebar-profile">
