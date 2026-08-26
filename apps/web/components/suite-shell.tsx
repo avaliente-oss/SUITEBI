@@ -29,7 +29,7 @@ import { useSuite } from "@/lib/suite-context";
 import { Avatar, BrandMark } from "@/components/suite-ui";
 
 type NavItem = {
-  href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan";
+  href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan" | "/equipo";
   label: string;
   icon: typeof LayoutDashboard;
   shortcut?: string;
@@ -117,7 +117,9 @@ export function SuiteShell({ children }: { children: ReactNode }) {
           <span className="nav-label second">ORGANIZACIÓN</span>
           <button onClick={() => notReady("Noticias DAVALSY")}><MessageSquareText size={18} /> Noticias DAVALSY <i /></button>
           <button onClick={() => notReady("Recursos")}><BookOpen size={18} /> Recursos</button>
-          <button onClick={() => notReady("Invitar y administrar equipo")}><ShieldCheck size={18} /> Equipo y accesos</button>
+          <Link href="/equipo" className={pathname === "/equipo" ? "active" : ""}>
+            <ShieldCheck size={18} /> Equipo y accesos
+          </Link>
 
           {isPlatformAdmin && (
             <>

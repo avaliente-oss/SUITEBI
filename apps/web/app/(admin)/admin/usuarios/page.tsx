@@ -9,6 +9,7 @@ import {
   adminAddPlatformAdmin,
   adminListOrganizations,
   adminListPlatformAdmins,
+  adminPurgeUser,
   adminRemovePlatformAdmin,
   adminSearchUsers,
   adminSetUserActive,
@@ -144,6 +145,27 @@ export default function AdminUsuariosPage() {
         await requestPasswordReset(supabase, user.email!);
       },
       "Enlace enviado. La persona debe abrirlo desde su correo.",
+    );
+  }
+
+  function purgeUser(user: AdminUserSearchResult) {
+    const orgs = user.organizations.length;
+    const detalle = orgs
+      ? `Se le quitará el acceso a ${orgs} ${orgs === 1 ? "organización" : "organizaciones"} y su cuenta quedará desactivada.`
+      : "Su cuenta quedará desactivada.";
+
+    if (!window.confirm(`¿Dar de baja a ${user.email}?\n\n${detalle}\n\nEs reversible: puedes reactivarla después.`)) {
+      return;
+    }
+
+    runUserAction(
+      user.userId,
+      async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) return;
+        await adminPurgeUser(supabase, user.userId);
+      },
+      "Usuario dado de baja y desvinculado de sus organizaciones.",
     );
   }
 
@@ -295,6 +317,14 @@ export default function AdminUsuariosPage() {
                 </button>
                 <button type="button" disabled={busyUser === user.userId} onClick={() => toggleActive(user)}>
                   {user.isActive ? <><Ban size={13} /> Desactivar</> : <><Check size={13} /> Reactivar</>}
+                </button>
+                <button
+                  type="button"
+                  disabled={busyUser === user.userId}
+                  title="Lo saca de todas sus organizaciones y desactiva su cuenta"
+                  onClick={() => purgeUser(user)}
+                >
+                  <Trash2 size={13} /> Dar de baja
                 </button>
               </div>
 

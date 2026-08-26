@@ -538,7 +538,13 @@ export function describeAdminError(error: unknown) {
     ORGANIZATION_NAME_TAKEN: "Ya existe una organización con ese nombre. Usa uno distinto.",
     ORGANIZATION_HAS_NO_OWNER:
       "Esta organización no tiene propietario activo. Asígnale uno en Ajustes antes de invitar gente.",
-    ACCOUNT_DISABLED: "Esa cuenta está desactivada. Reactívala desde Usuarios antes de continuar.",
+    ACCOUNT_DISABLED: "Esa cuenta está desactivada. Reactívala antes de continuar.",
+    NOT_ALLOWED: "Tu rol no permite hacer ese cambio en el equipo.",
+    NOT_ORGANIZATION_MEMBER: "No perteneces a esta organización.",
+    CANNOT_CHANGE_SELF: "No puedes cambiar tu propio rol ni quitarte a ti mismo.",
+    USER_IS_PRIMARY_OWNER:
+      "Esta persona es propietaria principal de una organización. Traspasa esa propiedad antes de darla de baja.",
+    INVITATION_NOT_FOUND: "Esa invitación ya no existe.",
   };
 
   for (const [code, message] of Object.entries(messages)) {
@@ -881,6 +887,103 @@ export async function signUpFromInvitation(
 
   if (error) throw error;
   return { needsEmailConfirmation: !data.session };
+}
+
+// ── Equipo, desde el panel del cliente ──────────────────────────────
+
+export type OrgTeamMember = {
+  userId: string;
+  email: string | null;
+  fullName: string;
+  role: string;
+  status: string;
+  isPrimaryOwner: boolean;
+  isSelf: boolean;
+  joinedAt: string | null;
+};
+
+export type OrgTeam = {
+  canManage: boolean;
+  canInvite: boolean;
+  userLimit: number | null;
+  activeCount: number;
+  members: OrgTeamMember[];
+  invitations: { id: string; email: string; role: string; token: string; expiresAt: string }[];
+};
+
+export async function orgListTeam(client: SupabaseClient, organizationId: string) {
+  const { data, error } = await client.rpc("org_list_team", { p_organization_id: organizationId });
+  if (error) throw error;
+  return data as OrgTeam;
+}
+
+export async function orgAddMember(
+  client: SupabaseClient,
+  organizationId: string,
+  email: string,
+  role: string,
+) {
+  const { error } = await client.rpc("org_add_member", {
+    p_organization_id: organizationId,
+    p_email: email,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function orgSetMemberRole(
+  client: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  role: string,
+) {
+  const { error } = await client.rpc("org_set_member_role", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function orgSetMemberStatus(
+  client: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  status: "active" | "suspended" | "removed",
+) {
+  const { error } = await client.rpc("org_set_member_status", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+    p_status: status,
+  });
+  if (error) throw error;
+}
+
+export async function orgCreateInvitation(
+  client: SupabaseClient,
+  organizationId: string,
+  email: string,
+  role: string,
+) {
+  const { data, error } = await client.rpc("org_create_invitation", {
+    p_organization_id: organizationId,
+    p_email: email,
+    p_role: role,
+  });
+  if (error) throw error;
+  return data as { id: string; token: string; email: string };
+}
+
+export async function orgRevokeInvitation(client: SupabaseClient, invitationId: string) {
+  const { error } = await client.rpc("org_revoke_invitation", { p_invitation_id: invitationId });
+  if (error) throw error;
+}
+
+/** Desvincula al usuario de todo y desactiva su perfil. */
+export async function adminPurgeUser(client: SupabaseClient, userId: string) {
+  const { data, error } = await client.rpc("admin_purge_user", { p_user_id: userId });
+  if (error) throw error;
+  return data as { organizaciones: number };
 }
 
 /** Acepta una invitación con el token del enlace. La usa /invitacion. */
