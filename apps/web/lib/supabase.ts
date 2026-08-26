@@ -762,12 +762,18 @@ export async function adminDeleteOrganization(
 
 // ── Edición de planes ───────────────────────────────────────────────
 
+export const CURRENCY_OPTIONS = ["MXN", "COP", "USD"] as const;
+
 export type AdminPlanDetailed = {
   id: string;
   name: string;
   description: string;
   tagline: string;
   priceLabel: string;
+  priceDisplay: string;
+  priceAmountCents: number | null;
+  currency: string;
+  billingInterval: "month" | "year";
   basicQuota: number | null;
   selfServe: boolean;
   sortOrder: number;
@@ -800,6 +806,9 @@ export async function adminUpsertPlan(
     basicQuota: number | null;
     selfServe: boolean;
     sortOrder: number;
+    priceAmountCents: number | null;
+    currency: string;
+    billingInterval: "month" | "year";
   },
 ) {
   const { error } = await client.rpc("admin_upsert_plan", {
@@ -811,6 +820,9 @@ export async function adminUpsertPlan(
     p_basic_quota: input.basicQuota,
     p_is_self_serve: input.selfServe,
     p_sort_order: input.sortOrder,
+    p_price_amount_cents: input.priceAmountCents,
+    p_currency: input.currency,
+    p_billing_interval: input.billingInterval,
   });
   if (error) throw error;
 }

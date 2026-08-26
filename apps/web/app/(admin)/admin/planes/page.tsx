@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Check, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import {
+  CURRENCY_OPTIONS,
   adminDeletePlan,
   adminGetPlanFeatures,
   adminListPlansDetailed,
@@ -23,6 +24,10 @@ const emptyForm = {
   basicQuota: "" as string,
   selfServe: true,
   sortOrder: 100,
+  // El monto se captura en pesos y se convierte a centavos al guardar.
+  price: "" as string,
+  currency: "MXN",
+  billingInterval: "month" as "month" | "year",
 };
 
 export default function AdminPlanesPage() {
@@ -100,6 +105,9 @@ export default function AdminPlanesPage() {
       basicQuota: plan.basicQuota === null ? "" : String(plan.basicQuota),
       selfServe: plan.selfServe,
       sortOrder: plan.sortOrder,
+      price: plan.priceAmountCents === null ? "" : String(plan.priceAmountCents / 100),
+      currency: plan.currency || "MXN",
+      billingInterval: plan.billingInterval || "month",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -121,6 +129,8 @@ export default function AdminPlanesPage() {
       await adminUpsertPlan(supabase, {
         ...form,
         basicQuota: form.basicQuota.trim() === "" ? null : Number(form.basicQuota),
+        // Se guarda en centavos: es como lo esperan Stripe y Mercado Pago.
+        priceAmountCents: form.price.trim() === "" ? null : Math.round(Number(form.price) * 100),
       });
       cancelEdit();
       await load();
@@ -207,9 +217,44 @@ export default function AdminPlanesPage() {
             </label>
 
             <label>
-              Etiqueta de precio
+              Precio <span className="admin-optional">(vacío = sin cifra pública)</span>
               <input
-                placeholder="Consulta precio"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="499.00"
+                value={form.price}
+                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+              />
+            </label>
+            <label>
+              Moneda
+              <select
+                value={form.currency}
+                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+              >
+                {CURRENCY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Periodicidad
+              <select
+                value={form.billingInterval}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, billingInterval: e.target.value as "month" | "year" }))
+                }
+              >
+                <option value="month">Mensual</option>
+                <option value="year">Anual</option>
+              </select>
+            </label>
+            <label>
+              Texto si no hay cifra
+              <input
+                placeholder="Hablemos"
                 value={form.priceLabel}
                 onChange={(e) => setForm((f) => ({ ...f, priceLabel: e.target.value }))}
               />
@@ -277,6 +322,7 @@ export default function AdminPlanesPage() {
               </div>
 
               <div className="admin-feature-status">
+                <span className="status-chip status-full">{plan.priceDisplay}</span>
                 <span className="status-chip">
                   {plan.basicQuota === null ? "Sin límite" : `${plan.basicQuota} soluciones`}
                 </span>
