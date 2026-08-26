@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
+  errorText,
   checkPlatformAdmin,
   completePendingOrganizationSetup,
   getSupabaseBrowserClient,
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setViewer(null);
         setPhase("signed_out");
-        setAuthError(error instanceof Error ? error.message : "No pudimos cargar tu cuenta.");
+        setAuthError(errorText(error) || "No pudimos cargar tu cuenta.");
       }
     };
 
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsPlatformAdmin(await checkPlatformAdmin(supabase));
     } catch (error) {
       setPhase("signed_out");
-      setAuthError(error instanceof Error ? error.message : "No pudimos cargar tu cuenta.");
+      setAuthError(errorText(error) || "No pudimos cargar tu cuenta.");
     }
   }
 

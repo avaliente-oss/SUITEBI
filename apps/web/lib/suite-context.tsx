@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
+  errorText,
   authorizeSolution,
   getSupabaseBrowserClient,
   listActiveSolutions,
@@ -157,7 +158,7 @@ export function SuiteProvider({
       setToast(`${solution.name} ya está lista en tu mesa de trabajo.`);
       router.push("/mesa-activa");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "No pudimos abrir la solución.");
+      setToast(errorText(error) || "No pudimos abrir la solución.");
     } finally {
       setOpening(null);
     }

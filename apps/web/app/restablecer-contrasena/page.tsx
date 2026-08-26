@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
-import { getSupabaseBrowserClient, updatePassword } from "@/lib/supabase";
+import { describeAuthError, getSupabaseBrowserClient, updatePassword } from "@/lib/supabase";
 import { BrandMark, LoadingScreen } from "@/components/suite-ui";
 
 type LinkStatus = "checking" | "ready" | "invalid" | "done";
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
       setStatus("done");
       window.setTimeout(() => router.replace("/lobby"), 1500);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "No pudimos actualizar tu contraseña.");
+      setError(describeAuthError(submitError));
     } finally {
       setBusy(false);
     }

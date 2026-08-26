@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
 import {
+  errorText,
   acceptInvitation,
   getInvitationPreview,
   getSupabaseBrowserClient,
@@ -33,7 +34,7 @@ const errorMessages: Record<string, string> = {
 };
 
 function describe(error: unknown) {
-  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const raw = errorText(error);
   for (const [code, message] of Object.entries(errorMessages)) {
     if (raw.includes(code)) return message;
   }

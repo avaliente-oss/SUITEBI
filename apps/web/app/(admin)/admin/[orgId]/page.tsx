@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import {
+  describeAdminError,
   getSupabaseBrowserClient,
   adminListOrganizations,
   adminGetOrganizationFeatures,
@@ -33,7 +34,7 @@ export default function AdminOrganizationDetailPage({ params }: { params: Promis
       setOrganization(organizations.find((org) => org.id === orgId) ?? null);
       setFeatures(featureList);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos cargar esta organización.");
+      setError(describeAdminError(err));
     }
   }
 
@@ -52,7 +53,7 @@ export default function AdminOrganizationDetailPage({ params }: { params: Promis
       await adminSetFeatureOverride(supabase, orgId, featureKey, enabled);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos guardar la excepción.");
+      setError(describeAdminError(err));
     } finally {
       setBusyKey(null);
     }
@@ -67,7 +68,7 @@ export default function AdminOrganizationDetailPage({ params }: { params: Promis
       await adminClearFeatureOverride(supabase, orgId, featureKey);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos quitar la excepción.");
+      setError(describeAdminError(err));
     } finally {
       setBusyKey(null);
     }

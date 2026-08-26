@@ -150,6 +150,8 @@ export default function AdminUsuariosPage() {
 
   function purgeUser(user: AdminUserSearchResult) {
     const orgs = user.organizations.length;
+    const propias = user.organizations.filter((org) => org.isPrimaryOwner);
+
     const detalle = orgs
       ? `Se le quitará el acceso a ${orgs} ${orgs === 1 ? "organización" : "organizaciones"} y su cuenta quedará desactivada.`
       : "Su cuenta quedará desactivada.";
@@ -158,12 +160,27 @@ export default function AdminUsuariosPage() {
       return;
     }
 
+    // Si es dueña de organizaciones, hay que decidir qué pasa con ellas.
+    // La base rechaza el caso peligroso (organizaciones con más gente);
+    // aquí sólo se confirma el caso inocuo.
+    let cerrarPropias = false;
+    if (propias.length > 0) {
+      const nombres = propias.map((org) => org.organizationName).join(", ");
+      cerrarPropias = window.confirm(
+        `Además es propietaria de: ${nombres}.\n\n` +
+          "Si es la única integrante de esas organizaciones, se desactivarán junto con su cuenta. " +
+          "Si alguna tiene más miembros, la baja se cancelará y tendrás que traspasar la propiedad primero.\n\n" +
+          "¿Continuar?",
+      );
+      if (!cerrarPropias) return;
+    }
+
     runUserAction(
       user.userId,
       async () => {
         const supabase = getSupabaseBrowserClient();
         if (!supabase) return;
-        await adminPurgeUser(supabase, user.userId);
+        await adminPurgeUser(supabase, user.userId, cerrarPropias);
       },
       "Usuario dado de baja y desvinculado de sus organizaciones.",
     );

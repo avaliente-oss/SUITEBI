@@ -108,9 +108,32 @@ export async function completePendingOrganizationSetup(client: SupabaseClient) {
   await client.auth.updateUser({ data: { pending_organization_name: null } });
 }
 
+/**
+ * Extrae el texto de un error.
+ *
+ * Supabase no lanza objetos Error: lanza objetos planos
+ * ({ message, details, hint, code }). Sin esto, String(error) devuelve
+ * "[object Object]" y ningún mensaje traducido llega a la pantalla.
+ */
+export function errorText(error: unknown): string {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object") {
+    const candidate = error as Record<string, unknown>;
+    const partes = ["message", "details", "hint", "code"]
+      .map((clave) => candidate[clave])
+      .filter((valor): valor is string => typeof valor === "string" && valor.length > 0);
+    if (partes.length) return partes.join(" · ");
+  }
+
+  return String(error);
+}
+
 /** Traduce los errores de Supabase Auth, que llegan en inglés. */
 export function describeAuthError(error: unknown) {
-  const raw = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
+  const raw = errorText(error).toLowerCase();
 
   if (raw.includes("invalid login credentials")) return "Correo o contraseña incorrectos.";
   if (raw.includes("email not confirmed")) {
@@ -133,7 +156,7 @@ export function describeAuthError(error: unknown) {
     return "Ya existe una organización con ese nombre. Usa uno distinto.";
   }
 
-  return error instanceof Error && error.message ? error.message : "No pudimos completar la operación.";
+  return errorText(error) || "No pudimos completar la operación.";
 }
 
 export type OrganizationNameCheck = {
@@ -502,7 +525,7 @@ export type AdminPlatformAdmin = {
 
 /** Traduce los códigos de error de los RPC a algo que un humano entienda. */
 export function describeAdminError(error: unknown) {
-  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const raw = errorText(error);
   const messages: Record<string, string> = {
     NOT_PLATFORM_ADMIN: "No tienes permisos de administrador de plataforma.",
     MEMBER_NOT_FOUND: "Ese usuario ya no pertenece a la organización.",
@@ -543,7 +566,9 @@ export function describeAdminError(error: unknown) {
     NOT_ORGANIZATION_MEMBER: "No perteneces a esta organización.",
     CANNOT_CHANGE_SELF: "No puedes cambiar tu propio rol ni quitarte a ti mismo.",
     USER_IS_PRIMARY_OWNER:
-      "Esta persona es propietaria principal de una organización. Traspasa esa propiedad antes de darla de baja.",
+      "Es propietaria de una organización que tiene más miembros. Traspasa esa propiedad antes de darla de baja, para no dejar al resto del equipo sin dueño.",
+    USER_OWNS_SOLO_ORGS:
+      "Es propietaria de organizaciones donde es la única integrante. Confirma para desactivarlas junto con su cuenta.",
     INVITATION_NOT_FOUND: "Esa invitación ya no existe.",
   };
 
@@ -979,11 +1004,22 @@ export async function orgRevokeInvitation(client: SupabaseClient, invitationId: 
   if (error) throw error;
 }
 
-/** Desvincula al usuario de todo y desactiva su perfil. */
-export async function adminPurgeUser(client: SupabaseClient, userId: string) {
-  const { data, error } = await client.rpc("admin_purge_user", { p_user_id: userId });
+/**
+ * Desvincula al usuario de todo y desactiva su perfil.
+ * `closeSoloOrgs` autoriza además desactivar las organizaciones donde
+ * era el único miembro; sin eso, la función se niega y avisa.
+ */
+export async function adminPurgeUser(
+  client: SupabaseClient,
+  userId: string,
+  closeSoloOrgs = false,
+) {
+  const { data, error } = await client.rpc("admin_purge_user", {
+    p_user_id: userId,
+    p_close_solo_orgs: closeSoloOrgs,
+  });
   if (error) throw error;
-  return data as { organizaciones: number };
+  return data as { membresias: number; organizacionesDesactivadas: number };
 }
 
 /** Acepta una invitación con el token del enlace. La usa /invitacion. */

@@ -174,7 +174,7 @@ export function LoginScreen({
       setMessage("Si ese correo tiene cuenta, te enviamos un enlace para restablecer tu contraseña.");
     } catch (resetError) {
       setFormError(
-        resetError instanceof Error ? resetError.message : "No pudimos enviar el enlace de recuperación.",
+        describeAuthError(resetError),
       );
     } finally {
       setForgotBusy(false);

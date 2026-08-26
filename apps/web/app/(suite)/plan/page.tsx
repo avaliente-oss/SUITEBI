@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, LoaderCircle, Zap } from "lucide-react";
 import { useSuite } from "@/lib/suite-context";
 import {
+  errorText,
   getOrganizationSolutions,
   getSupabaseBrowserClient,
   listPublicPlans,
@@ -65,7 +66,7 @@ export default function PlanPage() {
       await setOrganizationSolutions(supabase, organization.id, selected);
       setToast("Listo. Recarga para ver tus soluciones actualizadas.");
     } catch (error) {
-      const raw = error instanceof Error ? error.message : "";
+      const raw = errorText(error);
       setToast(
         raw.includes("NOT_ALLOWED")
           ? "Sólo el propietario de la organización puede cambiar las soluciones contratadas."

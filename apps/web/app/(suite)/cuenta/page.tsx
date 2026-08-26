@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { Check, KeyRound, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useSuite } from "@/lib/suite-context";
-import { getSupabaseBrowserClient, updateFullName, updatePassword } from "@/lib/supabase";
+import { describeAuthError, getSupabaseBrowserClient, updateFullName, updatePassword } from "@/lib/supabase";
 import { formatRole } from "@/lib/suite-data";
 
 export default function CuentaPage() {
@@ -43,7 +43,7 @@ export default function CuentaPage() {
       await refreshViewer();
       setNameMessage("Tu nombre se actualizó.");
     } catch (error) {
-      setNameError(error instanceof Error ? error.message : "No pudimos actualizar tu nombre.");
+      setNameError(describeAuthError(error));
     } finally {
       setNameBusy(false);
     }
@@ -79,7 +79,7 @@ export default function CuentaPage() {
       setPasswordConfirm("");
       setPasswordMessage("Tu contraseña se actualizó.");
     } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : "No pudimos actualizar tu contraseña.");
+      setPasswordError(describeAuthError(error));
     } finally {
       setPasswordBusy(false);
     }

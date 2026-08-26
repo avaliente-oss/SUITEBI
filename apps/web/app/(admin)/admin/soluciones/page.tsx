@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Boxes, LoaderCircle, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
+  describeAdminError,
   adminDeleteSolution,
   adminListSolutions,
   adminSetSolutionActive,
@@ -46,7 +47,7 @@ export default function AdminSolucionesPage() {
     try {
       setSolutions(await adminListSolutions(supabase));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos cargar las soluciones.");
+      setError(describeAdminError(err));
     }
   }
 
@@ -95,7 +96,7 @@ export default function AdminSolucionesPage() {
       cancelEdit();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos guardar la solución.");
+      setError(describeAdminError(err));
     } finally {
       setSaving(false);
     }
@@ -110,7 +111,7 @@ export default function AdminSolucionesPage() {
       await adminSetSolutionActive(supabase, solution.id, !solution.is_active);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos actualizar la solución.");
+      setError(describeAdminError(err));
     } finally {
       setBusyId(null);
     }
@@ -128,7 +129,7 @@ export default function AdminSolucionesPage() {
       if (editingId === solution.id) cancelEdit();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos eliminar la solución.");
+      setError(describeAdminError(err));
     } finally {
       setBusyId(null);
     }
