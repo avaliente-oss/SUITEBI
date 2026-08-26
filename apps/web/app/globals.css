@@ -974,6 +974,8 @@ button:disabled {
 .admin-assign-row button { align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: 7px; color: var(--muted); display: flex; font-size: 11px; font-weight: 700; gap: 5px; height: 32px; padding: 0 11px; }
 .admin-assign-row .admin-primary-button { background: var(--chrome); border-color: var(--chrome); color: var(--on-chrome); }
 
+.admin-price-row { grid-template-columns: 1fr auto auto; }
+
 .admin-plan-features { display: grid; gap: 4px; }
 .admin-plan-feature-row { align-items: center; border-bottom: 1px solid var(--line-subtle); display: grid; gap: 12px; grid-template-columns: 1fr auto 110px 18px; padding: 9px 0; }
 .admin-plan-feature-row:last-child { border-bottom: 0; }

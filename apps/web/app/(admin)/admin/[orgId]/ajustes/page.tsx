@@ -7,7 +7,9 @@ import { ArrowLeft, Check, LoaderCircle, ShieldCheck, TriangleAlert } from "luci
 import {
   ACCESS_STATUS_OPTIONS,
   ORGANIZATION_STATUS_OPTIONS,
+  COUNTRY_OPTIONS,
   adminGetOrganizationSolutions,
+  adminSetOrganizationCountry,
   setOrganizationSolutions,
   adminDeleteOrganization,
   adminListOrganizationMembers,
@@ -49,6 +51,7 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
   const [busy, setBusy] = useState<string | null>(null);
 
   const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
   const [planId, setPlanId] = useState("");
   const [accessStatus, setAccessStatus] = useState("trial");
   const [status, setStatus] = useState("active");
@@ -80,6 +83,7 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
       setHasOwner(members.some((member) => member.isPrimaryOwner && member.status === "active"));
       if (found) {
         setName(found.name);
+        setCountry(found.country ?? "");
         setPlanId(found.plan_id);
         setAccessStatus(found.access_status);
         setStatus(found.status);
@@ -232,6 +236,40 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
               {busy === "name" ? <LoaderCircle className="spin" size={16} /> : "Guardar nombre"}
             </button>
           </form>
+
+          <div className="settings-card">
+            <div className="settings-card-head">
+              <div>
+                <h2>País</h2>
+                <p>Determina en qué moneda se le cobra y con qué proveedor de pago.</p>
+              </div>
+            </div>
+            <div className="settings-form">
+              <label>
+                País de la organización
+                <select value={country} onChange={(event) => setCountry(event.target.value)}>
+                  <option value="">Sin definir</option>
+                  {COUNTRY_OPTIONS.map((option) => (
+                    <option key={option.code} value={option.code}>{option.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <button
+              className="primary-login settings-submit"
+              type="button"
+              disabled={busy === "country"}
+              onClick={() =>
+                run("country", async () => {
+                  const supabase = getSupabaseBrowserClient();
+                  if (!supabase) return;
+                  await adminSetOrganizationCountry(supabase, orgId, country || null);
+                }, "País actualizado.")
+              }
+            >
+              {busy === "country" ? <LoaderCircle className="spin" size={16} /> : "Guardar país"}
+            </button>
+          </div>
 
           <form className="settings-card" onSubmit={submitPlan}>
             <div className="settings-card-head">

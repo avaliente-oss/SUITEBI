@@ -17,6 +17,7 @@ import {
   listBasicSolutions,
   checkOrganizationName,
   describeAuthError,
+  COUNTRY_OPTIONS,
   type PublicPlan,
   type BasicSolution,
 } from "@/lib/supabase";
@@ -38,6 +39,7 @@ export function LoginScreen({
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [basicSolutions, setBasicSolutions] = useState<BasicSolution[]>([]);
+  const [country, setCountry] = useState("CO");
   const [planId, setPlanId] = useState("free");
   const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
   const [nameTaken, setNameTaken] = useState(false);
@@ -60,7 +62,8 @@ export function LoginScreen({
     if (!supabase) return;
     let cancelled = false;
 
-    Promise.all([listPublicPlans(supabase), listBasicSolutions(supabase)])
+    // El país entra en la consulta: cada uno tiene su propio precio.
+    Promise.all([listPublicPlans(supabase, country), listBasicSolutions(supabase)])
       .then(([planList, solutionList]) => {
         if (cancelled) return;
         setPlans(planList);
@@ -73,7 +76,7 @@ export function LoginScreen({
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, country]);
 
   const activePlan = plans.find((plan) => plan.id === planId) ?? null;
   const quota = activePlan?.basicQuota ?? null;
@@ -218,6 +221,7 @@ export function LoginScreen({
         password: signupPassword,
         planId,
         solutionIds: selectedSolutions,
+        country,
       });
 
       if (needsEmailConfirmation) {
@@ -435,6 +439,18 @@ export function LoginScreen({
                   </button>
                 </p>
               )}
+
+              <label htmlFor="signup-country">País de tu organización</label>
+              <select
+                id="signup-country"
+                value={country}
+                onChange={(event) => setCountry(event.target.value)}
+                disabled={!isSupabaseConfigured}
+              >
+                {COUNTRY_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>{option.name}</option>
+                ))}
+              </select>
 
               <label htmlFor="signup-email">Correo de trabajo</label>
               <div className="input-wrap">

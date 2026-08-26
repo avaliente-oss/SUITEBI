@@ -191,10 +191,67 @@ export type BasicSolution = {
   icon: string;
 };
 
-export async function listPublicPlans(client: SupabaseClient) {
-  const { data, error } = await client.rpc("list_public_plans");
+/** El precio depende del país: sin país se devuelve el precio por defecto. */
+export async function listPublicPlans(client: SupabaseClient, country?: string | null) {
+  const { data, error } = await client.rpc("list_public_plans", { p_country: country ?? null });
   if (error) throw error;
   return (data ?? []) as PublicPlan[];
+}
+
+export type AdminPlanPrice = {
+  country: string;
+  currency: string;
+  amountCents: number;
+  provider: string | null;
+  providerPriceId: string | null;
+};
+
+export async function adminListPlanPrices(client: SupabaseClient, planId: string) {
+  const { data, error } = await client.rpc("admin_list_plan_prices", { p_plan_id: planId });
+  if (error) throw error;
+  return (data ?? []) as AdminPlanPrice[];
+}
+
+export async function adminSetPlanPrice(
+  client: SupabaseClient,
+  input: {
+    planId: string;
+    country: string;
+    currency: string;
+    amountCents: number;
+    provider?: string | null;
+    providerPriceId?: string | null;
+  },
+) {
+  const { error } = await client.rpc("admin_set_plan_price", {
+    p_plan_id: input.planId,
+    p_country: input.country,
+    p_currency: input.currency,
+    p_amount_cents: input.amountCents,
+    p_provider: input.provider ?? null,
+    p_provider_price_id: input.providerPriceId ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function adminDeletePlanPrice(client: SupabaseClient, planId: string, country: string) {
+  const { error } = await client.rpc("admin_delete_plan_price", {
+    p_plan_id: planId,
+    p_country: country,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetOrganizationCountry(
+  client: SupabaseClient,
+  organizationId: string,
+  country: string | null,
+) {
+  const { error } = await client.rpc("admin_set_organization_country", {
+    p_organization_id: organizationId,
+    p_country: country,
+  });
+  if (error) throw error;
 }
 
 export async function listBasicSolutions(client: SupabaseClient) {
@@ -208,11 +265,13 @@ async function applySignupPlan(
   organizationId: string,
   planId: string,
   solutionIds: string[],
+  country: string | null,
 ) {
   const { error } = await client.rpc("apply_signup_plan", {
     p_organization_id: organizationId,
     p_plan_id: planId,
     p_solution_ids: solutionIds,
+    p_country: country,
   });
   if (error) throw error;
 }
@@ -226,9 +285,10 @@ export async function signUpWithOrganization(
     password: string;
     planId: string;
     solutionIds: string[];
+    country: string;
   },
 ) {
-  const { fullName, organizationName, email, password, planId, solutionIds } = params;
+  const { fullName, organizationName, email, password, planId, solutionIds, country } = params;
 
   const { data, error } = await client.auth.signUp({
     email,
@@ -239,6 +299,7 @@ export async function signUpWithOrganization(
         pending_organization_name: organizationName,
         pending_plan_id: planId,
         pending_solution_ids: solutionIds,
+        pending_country: country,
       },
       emailRedirectTo:
         typeof window !== "undefined" ? window.location.origin : undefined,
@@ -252,10 +313,15 @@ export async function signUpWithOrganization(
     const context = await loadViewerContext(client);
     const organization = context.organizations[0];
     if (organization) {
-      await applySignupPlan(client, organization.id, planId, solutionIds);
+      await applySignupPlan(client, organization.id, planId, solutionIds, country);
     }
     await client.auth.updateUser({
-      data: { pending_organization_name: null, pending_plan_id: null, pending_solution_ids: null },
+      data: {
+        pending_organization_name: null,
+        pending_plan_id: null,
+        pending_solution_ids: null,
+        pending_country: null,
+      },
     });
     return { needsEmailConfirmation: false };
   }
@@ -332,11 +398,28 @@ export async function listActiveSolutions(client: SupabaseClient) {
   return (data ?? []) as import("./suite-data").Solution[];
 }
 
+/** Países donde opera la Suite. Se guarda el código ISO de dos letras. */
+export const COUNTRY_OPTIONS = [
+  { code: "CO", name: "Colombia" },
+  { code: "MX", name: "México" },
+  { code: "US", name: "Estados Unidos" },
+  { code: "AR", name: "Argentina" },
+  { code: "CL", name: "Chile" },
+  { code: "PE", name: "Perú" },
+  { code: "EC", name: "Ecuador" },
+] as const;
+
+export function countryName(code: string | null | undefined) {
+  if (!code) return "Sin país";
+  return COUNTRY_OPTIONS.find((c) => c.code === code)?.name ?? code;
+}
+
 export type AdminOrganizationSummary = {
   id: string;
   name: string;
   slug: string;
   status: string;
+  country: string | null;
   plan_id: string;
   plan_name: string;
   access_status: string;

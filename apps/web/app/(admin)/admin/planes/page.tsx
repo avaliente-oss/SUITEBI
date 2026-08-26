@@ -3,8 +3,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Check, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import {
+  COUNTRY_OPTIONS,
   CURRENCY_OPTIONS,
+  countryName,
+  adminDeletePlanPrice,
+  adminListPlanPrices,
+  adminSetPlanPrice,
   adminDeletePlan,
+  type AdminPlanPrice,
   adminGetPlanFeatures,
   adminListPlansDetailed,
   adminSetPlanFeature,
@@ -42,6 +48,11 @@ export default function AdminPlanesPage() {
   const [featuresPlan, setFeaturesPlan] = useState<string | null>(null);
   const [features, setFeatures] = useState<AdminPlanFeature[] | null>(null);
   const [busyFeature, setBusyFeature] = useState<string | null>(null);
+
+  const [pricesPlan, setPricesPlan] = useState<string | null>(null);
+  const [prices, setPrices] = useState<AdminPlanPrice[] | null>(null);
+  const [newPrice, setNewPrice] = useState({ country: "CO", currency: "COP", amount: "" });
+  const [savingPrice, setSavingPrice] = useState(false);
 
   async function load() {
     const supabase = getSupabaseBrowserClient();
@@ -91,6 +102,66 @@ export default function AdminPlanesPage() {
       setError(describeAdminError(err));
     } finally {
       setBusyFeature(null);
+    }
+  }
+
+  async function openPrices(planId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    if (pricesPlan === planId) {
+      setPricesPlan(null);
+      setPrices(null);
+      return;
+    }
+
+    setPricesPlan(planId);
+    setPrices(null);
+    try {
+      setPrices(await adminListPlanPrices(supabase, planId));
+    } catch (err) {
+      setError(describeAdminError(err));
+    }
+  }
+
+  async function savePrice(country: string, currency: string, amount: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !pricesPlan) return;
+
+    setError("");
+    setSavingPrice(true);
+    try {
+      await adminSetPlanPrice(supabase, {
+        planId: pricesPlan,
+        country,
+        currency,
+        amountCents: Math.round(Number(amount) * 100),
+      });
+      setPrices(await adminListPlanPrices(supabase, pricesPlan));
+      setNewPrice({ country: "CO", currency: "COP", amount: "" });
+      await load();
+      setNotice("Precio guardado.");
+    } catch (err) {
+      setError(describeAdminError(err));
+    } finally {
+      setSavingPrice(false);
+    }
+  }
+
+  async function removePrice(country: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || !pricesPlan) return;
+
+    setSavingPrice(true);
+    try {
+      await adminDeletePlanPrice(supabase, pricesPlan, country);
+      setPrices(await adminListPlanPrices(supabase, pricesPlan));
+      await load();
+      setNotice("Precio eliminado.");
+    } catch (err) {
+      setError(describeAdminError(err));
+    } finally {
+      setSavingPrice(false);
     }
   }
 
@@ -337,6 +408,13 @@ export default function AdminPlanesPage() {
                 </button>
                 <button
                   type="button"
+                  className={pricesPlan === plan.id ? "active" : ""}
+                  onClick={() => openPrices(plan.id)}
+                >
+                  Precios por país
+                </button>
+                <button
+                  type="button"
                   className={featuresPlan === plan.id ? "active" : ""}
                   onClick={() => openFeatures(plan.id)}
                 >
@@ -353,6 +431,83 @@ export default function AdminPlanesPage() {
               </div>
             </div>
           ))}
+
+          {pricesPlan && (
+            <div className="settings-card">
+              <div className="settings-card-head">
+                <div>
+                  <h2>Precios de {plans?.find((p) => p.id === pricesPlan)?.name}</h2>
+                  <p>
+                    Un precio por país, en su moneda. La fila <strong>*</strong> es el precio por
+                    defecto para países sin precio propio.
+                  </p>
+                </div>
+              </div>
+
+              {!prices && <p className="admin-loading">Cargando…</p>}
+
+              <div className="admin-plan-features">
+                {prices?.map((price) => (
+                  <div key={price.country} className="admin-plan-feature-row admin-price-row">
+                    <div>
+                      <strong>{price.country === "*" ? "Por defecto" : countryName(price.country)}</strong>
+                      <span className="admin-feature-key">{price.country}</span>
+                    </div>
+                    <span className="status-chip status-full">
+                      {(price.amountCents / 100).toLocaleString("es-CO", { minimumFractionDigits: 2 })} {price.currency}
+                    </span>
+                    <button type="button" disabled={savingPrice} onClick={() => removePrice(price.country)}>
+                      <Trash2 size={13} /> Quitar
+                    </button>
+                  </div>
+                ))}
+                {prices?.length === 0 && (
+                  <p className="admin-loading">Este plan todavía no tiene precios definidos.</p>
+                )}
+              </div>
+
+              <div className="admin-assign-row">
+                <select
+                  value={newPrice.country}
+                  onChange={(e) => {
+                    const code = e.target.value;
+                    const monedaPorPais: Record<string, string> = { CO: "COP", MX: "MXN", US: "USD" };
+                    setNewPrice((p) => ({ ...p, country: code, currency: monedaPorPais[code] ?? p.currency }));
+                  }}
+                >
+                  <option value="*">Por defecto (todos los demás)</option>
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={newPrice.currency}
+                  onChange={(e) => setNewPrice((p) => ({ ...p, currency: e.target.value }))}
+                >
+                  {CURRENCY_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  className="admin-plan-limit"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Monto"
+                  value={newPrice.amount}
+                  onChange={(e) => setNewPrice((p) => ({ ...p, amount: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="admin-primary-button"
+                  disabled={savingPrice || newPrice.amount.trim() === ""}
+                  onClick={() => savePrice(newPrice.country, newPrice.currency, newPrice.amount)}
+                >
+                  {savingPrice ? <LoaderCircle className="spin" size={14} /> : "Guardar precio"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {featuresPlan && (
             <div className="settings-card">
