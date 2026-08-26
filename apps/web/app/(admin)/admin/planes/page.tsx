@@ -11,6 +11,7 @@ import {
   adminSetPlanPrice,
   adminDeletePlan,
   type AdminPlanPrice,
+  type BillingInterval,
   adminGetPlanFeatures,
   adminListPlansDetailed,
   adminSetPlanFeature,
@@ -51,7 +52,12 @@ export default function AdminPlanesPage() {
 
   const [pricesPlan, setPricesPlan] = useState<string | null>(null);
   const [prices, setPrices] = useState<AdminPlanPrice[] | null>(null);
-  const [newPrice, setNewPrice] = useState({ country: "CO", currency: "COP", amount: "" });
+  const [newPrice, setNewPrice] = useState({
+    country: "CO",
+    currency: "COP",
+    amount: "",
+    billingInterval: "month" as BillingInterval,
+  });
   const [savingPrice, setSavingPrice] = useState(false);
 
   async function load() {
@@ -124,7 +130,12 @@ export default function AdminPlanesPage() {
     }
   }
 
-  async function savePrice(country: string, currency: string, amount: string) {
+  async function savePrice(
+    country: string,
+    currency: string,
+    amount: string,
+    billingInterval: BillingInterval,
+  ) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !pricesPlan) return;
 
@@ -135,10 +146,11 @@ export default function AdminPlanesPage() {
         planId: pricesPlan,
         country,
         currency,
+        billingInterval,
         amountCents: Math.round(Number(amount) * 100),
       });
       setPrices(await adminListPlanPrices(supabase, pricesPlan));
-      setNewPrice({ country: "CO", currency: "COP", amount: "" });
+      setNewPrice({ country: "CO", currency: "COP", amount: "", billingInterval: "month" });
       await load();
       setNotice("Precio guardado.");
     } catch (err) {
@@ -148,13 +160,13 @@ export default function AdminPlanesPage() {
     }
   }
 
-  async function removePrice(country: string) {
+  async function removePrice(country: string, billingInterval: BillingInterval) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase || !pricesPlan) return;
 
     setSavingPrice(true);
     try {
-      await adminDeletePlanPrice(supabase, pricesPlan, country);
+      await adminDeletePlanPrice(supabase, pricesPlan, country, billingInterval);
       setPrices(await adminListPlanPrices(supabase, pricesPlan));
       await load();
       setNotice("Precio eliminado.");
@@ -448,15 +460,19 @@ export default function AdminPlanesPage() {
 
               <div className="admin-plan-features">
                 {prices?.map((price) => (
-                  <div key={price.country} className="admin-plan-feature-row admin-price-row">
+                  <div key={`${price.country}-${price.billingInterval}`} className="admin-plan-feature-row admin-price-row">
                     <div>
                       <strong>{price.country === "*" ? "Por defecto" : countryName(price.country)}</strong>
-                      <span className="admin-feature-key">{price.country}</span>
+                      <span className="admin-feature-key">
+                        {price.country} · {price.billingInterval === "year" ? "anual" : "mensual"}
+                      </span>
                     </div>
-                    <span className="status-chip status-full">
-                      {(price.amountCents / 100).toLocaleString("es-CO", { minimumFractionDigits: 2 })} {price.currency}
-                    </span>
-                    <button type="button" disabled={savingPrice} onClick={() => removePrice(price.country)}>
+                    <span className="status-chip status-full">{price.label}</span>
+                    <button
+                      type="button"
+                      disabled={savingPrice}
+                      onClick={() => removePrice(price.country, price.billingInterval)}
+                    >
                       <Trash2 size={13} /> Quitar
                     </button>
                   </div>
@@ -488,6 +504,15 @@ export default function AdminPlanesPage() {
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+                <select
+                  value={newPrice.billingInterval}
+                  onChange={(e) =>
+                    setNewPrice((p) => ({ ...p, billingInterval: e.target.value as BillingInterval }))
+                  }
+                >
+                  <option value="month">Mensual</option>
+                  <option value="year">Anual</option>
+                </select>
                 <input
                   className="admin-plan-limit"
                   type="number"
@@ -501,7 +526,9 @@ export default function AdminPlanesPage() {
                   type="button"
                   className="admin-primary-button"
                   disabled={savingPrice || newPrice.amount.trim() === ""}
-                  onClick={() => savePrice(newPrice.country, newPrice.currency, newPrice.amount)}
+                  onClick={() =>
+                    savePrice(newPrice.country, newPrice.currency, newPrice.amount, newPrice.billingInterval)
+                  }
                 >
                   {savingPrice ? <LoaderCircle className="spin" size={14} /> : "Guardar precio"}
                 </button>

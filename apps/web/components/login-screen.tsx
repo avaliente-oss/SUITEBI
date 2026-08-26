@@ -18,6 +18,7 @@ import {
   checkOrganizationName,
   describeAuthError,
   COUNTRY_OPTIONS,
+  type BillingInterval,
   type PublicPlan,
   type BasicSolution,
 } from "@/lib/supabase";
@@ -40,6 +41,7 @@ export function LoginScreen({
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [basicSolutions, setBasicSolutions] = useState<BasicSolution[]>([]);
   const [country, setCountry] = useState("CO");
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const [planId, setPlanId] = useState("free");
   const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
   const [nameTaken, setNameTaken] = useState(false);
@@ -63,7 +65,7 @@ export function LoginScreen({
     let cancelled = false;
 
     // El país entra en la consulta: cada uno tiene su propio precio.
-    Promise.all([listPublicPlans(supabase, country), listBasicSolutions(supabase)])
+    Promise.all([listPublicPlans(supabase, country, billingInterval), listBasicSolutions(supabase)])
       .then(([planList, solutionList]) => {
         if (cancelled) return;
         setPlans(planList);
@@ -76,7 +78,7 @@ export function LoginScreen({
     return () => {
       cancelled = true;
     };
-  }, [supabase, country]);
+  }, [supabase, country, billingInterval]);
 
   const activePlan = plans.find((plan) => plan.id === planId) ?? null;
   const quota = activePlan?.basicQuota ?? null;
@@ -222,6 +224,7 @@ export function LoginScreen({
         planId,
         solutionIds: selectedSolutions,
         country,
+        billingInterval,
       });
 
       if (needsEmailConfirmation) {
@@ -482,7 +485,25 @@ export function LoginScreen({
 
               {plans.length > 0 && (
                 <>
-                  <span className="signup-section-label">Elige tu plan</span>
+                  <span className="signup-section-label">
+                    Elige tu plan
+                    <span className="interval-switch">
+                      <button
+                        type="button"
+                        className={billingInterval === "month" ? "active" : ""}
+                        onClick={() => setBillingInterval("month")}
+                      >
+                        Mensual
+                      </button>
+                      <button
+                        type="button"
+                        className={billingInterval === "year" ? "active" : ""}
+                        onClick={() => setBillingInterval("year")}
+                      >
+                        Anual
+                      </button>
+                    </span>
+                  </span>
                   <div className="plan-picker">
                     {plans.map((plan) => (
                       <button

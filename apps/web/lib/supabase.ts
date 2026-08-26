@@ -181,6 +181,13 @@ export type PublicPlan = {
   priceLabel: string;
   basicQuota: number | null;
   selfServe: boolean;
+  /** Todas las tarifas disponibles del plan, para comparar mensual vs anual. */
+  prices?: {
+    billingInterval: BillingInterval;
+    currency: string;
+    amountCents: number;
+    label: string;
+  }[];
 };
 
 export type BasicSolution = {
@@ -191,17 +198,28 @@ export type BasicSolution = {
   icon: string;
 };
 
-/** El precio depende del país: sin país se devuelve el precio por defecto. */
-export async function listPublicPlans(client: SupabaseClient, country?: string | null) {
-  const { data, error } = await client.rpc("list_public_plans", { p_country: country ?? null });
+/** El precio depende del país y de la periodicidad elegida. */
+export async function listPublicPlans(
+  client: SupabaseClient,
+  country?: string | null,
+  interval: BillingInterval = "month",
+) {
+  const { data, error } = await client.rpc("list_public_plans", {
+    p_country: country ?? null,
+    p_interval: interval,
+  });
   if (error) throw error;
   return (data ?? []) as PublicPlan[];
 }
 
+export type BillingInterval = "month" | "year";
+
 export type AdminPlanPrice = {
   country: string;
+  billingInterval: BillingInterval;
   currency: string;
   amountCents: number;
+  label: string;
   provider: string | null;
   providerPriceId: string | null;
 };
@@ -217,6 +235,7 @@ export async function adminSetPlanPrice(
   input: {
     planId: string;
     country: string;
+    billingInterval: BillingInterval;
     currency: string;
     amountCents: number;
     provider?: string | null;
@@ -228,16 +247,23 @@ export async function adminSetPlanPrice(
     p_country: input.country,
     p_currency: input.currency,
     p_amount_cents: input.amountCents,
+    p_billing_interval: input.billingInterval,
     p_provider: input.provider ?? null,
     p_provider_price_id: input.providerPriceId ?? null,
   });
   if (error) throw error;
 }
 
-export async function adminDeletePlanPrice(client: SupabaseClient, planId: string, country: string) {
+export async function adminDeletePlanPrice(
+  client: SupabaseClient,
+  planId: string,
+  country: string,
+  billingInterval: BillingInterval,
+) {
   const { error } = await client.rpc("admin_delete_plan_price", {
     p_plan_id: planId,
     p_country: country,
+    p_billing_interval: billingInterval,
   });
   if (error) throw error;
 }
@@ -266,12 +292,14 @@ async function applySignupPlan(
   planId: string,
   solutionIds: string[],
   country: string | null,
+  billingInterval: BillingInterval,
 ) {
   const { error } = await client.rpc("apply_signup_plan", {
     p_organization_id: organizationId,
     p_plan_id: planId,
     p_solution_ids: solutionIds,
     p_country: country,
+    p_billing_interval: billingInterval,
   });
   if (error) throw error;
 }
@@ -286,9 +314,10 @@ export async function signUpWithOrganization(
     planId: string;
     solutionIds: string[];
     country: string;
+    billingInterval: BillingInterval;
   },
 ) {
-  const { fullName, organizationName, email, password, planId, solutionIds, country } = params;
+  const { fullName, organizationName, email, password, planId, solutionIds, country, billingInterval } = params;
 
   const { data, error } = await client.auth.signUp({
     email,
@@ -313,7 +342,7 @@ export async function signUpWithOrganization(
     const context = await loadViewerContext(client);
     const organization = context.organizations[0];
     if (organization) {
-      await applySignupPlan(client, organization.id, planId, solutionIds, country);
+      await applySignupPlan(client, organization.id, planId, solutionIds, country, billingInterval);
     }
     await client.auth.updateUser({
       data: {
