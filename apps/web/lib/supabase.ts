@@ -358,6 +358,44 @@ export async function signUpWithOrganization(
   return { needsEmailConfirmation: true };
 }
 
+// ── Preguntas frecuentes ────────────────────────────────────────────
+
+export type Faq = { id: string; question: string; answer: string };
+
+export type AdminFaq = Faq & { sortOrder: number; isActive: boolean };
+
+export async function listActiveFaqs(client: SupabaseClient) {
+  const { data, error } = await client.rpc("list_active_faqs");
+  // Si la migración aún no corre, la sección simplemente no aparece.
+  if (error) return [];
+  return (data ?? []) as Faq[];
+}
+
+export async function adminListFaqs(client: SupabaseClient) {
+  const { data, error } = await client.rpc("admin_list_faqs");
+  if (error) throw error;
+  return (data ?? []) as AdminFaq[];
+}
+
+export async function adminUpsertFaq(
+  client: SupabaseClient,
+  input: { id: string | null; question: string; answer: string; sortOrder: number; isActive: boolean },
+) {
+  const { error } = await client.rpc("admin_upsert_faq", {
+    p_id: input.id,
+    p_question: input.question,
+    p_answer: input.answer,
+    p_sort_order: input.sortOrder,
+    p_is_active: input.isActive,
+  });
+  if (error) throw error;
+}
+
+export async function adminDeleteFaq(client: SupabaseClient, id: string) {
+  const { error } = await client.rpc("admin_delete_faq", { p_id: id });
+  if (error) throw error;
+}
+
 export type PlanChangeOption = {
   id: string;
   name: string;

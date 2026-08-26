@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Boxes, Building2, CreditCard, ShieldUser, Users } from "lucide-react";
+import { ArrowLeft, Boxes, Building2, CreditCard, MessageCircleQuestion, ShieldUser, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { BrandMark, LoadingScreen } from "@/components/suite-ui";
 
@@ -43,6 +43,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         <Link href="/admin/usuarios" className={pathname?.startsWith("/admin/usuarios") ? "active" : ""}>
           <Users size={15} /> Usuarios
+        </Link>
+        <Link href="/admin/ayuda" className={pathname?.startsWith("/admin/ayuda") ? "active" : ""}>
+          <MessageCircleQuestion size={15} /> Ayuda
         </Link>
       </nav>
       <div className="admin-content">{children}</div>

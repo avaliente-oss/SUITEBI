@@ -1007,6 +1007,39 @@ button:disabled {
 }
 .soporte-cargando { align-items: center; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); display: flex; font-size: 13px; justify-content: center; line-height: 1.6; padding: 40px 26px; text-align: center; width: 100%; }
 
+/* Preguntas frecuentes: acordeón con <details>, sin JavaScript. */
+.faq-textarea { background: var(--white); border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: 14px; line-height: 1.6; padding: 11px 13px; resize: vertical; width: 100%; }
+.faq-textarea:focus-visible { border-color: var(--accent-dark); }
+
+.faq-seccion { margin-top: 34px; }
+.faq-lista { display: grid; gap: 8px; margin-top: 16px; max-width: 860px; }
+.faq-item { background: var(--white); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; transition: border-color .15s; }
+.faq-item:hover { border-color: var(--accent-dark); }
+.faq-item[open] { border-color: var(--accent-dark); }
+.faq-item summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  list-style: none;
+  padding: 15px 44px 15px 17px;
+  position: relative;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  border-bottom: 2px solid var(--muted);
+  border-right: 2px solid var(--muted);
+  content: "";
+  height: 7px;
+  position: absolute;
+  right: 19px;
+  top: 18px;
+  transform: rotate(45deg);
+  transition: transform .18s;
+  width: 7px;
+}
+.faq-item[open] summary::after { transform: rotate(-135deg); top: 21px; }
+.faq-item p { color: var(--muted); font-size: 13px; line-height: 1.65; margin: 0; padding: 0 17px 16px; }
+
 .soporte-aside { display: grid; gap: 10px; }
 .soporte-aside-title { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .16em; margin: 2px 0 2px 2px; }
 .soporte-aside-title + .soporte-tarjeta { margin-bottom: 0; }

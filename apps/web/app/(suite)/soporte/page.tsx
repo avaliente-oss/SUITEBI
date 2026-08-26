@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CreditCard, Headphones, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { useSuite } from "@/lib/suite-context";
 import { isSupportChatConfigured, mountSupportChat } from "@/components/support-chat";
+import { getSupabaseBrowserClient, listActiveFaqs, type Faq } from "@/lib/supabase";
 
 const atajos = [
   {
@@ -33,6 +34,7 @@ export default function SoportePage() {
   const [estado, setEstado] = useState<"cargando" | "listo" | "error">(
     isSupportChatConfigured ? "cargando" : "error",
   );
+  const [faqs, setFaqs] = useState<Faq[]>([]);
 
   useEffect(() => {
     if (!isSupportChatConfigured || !marco.current) return;
@@ -45,6 +47,20 @@ export default function SoportePage() {
       .catch(() => {
         if (!cancelado) setEstado("error");
       });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    let cancelado = false;
+    listActiveFaqs(supabase).then((lista) => {
+      if (!cancelado) setFaqs(lista);
+    });
 
     return () => {
       cancelado = true;
@@ -113,6 +129,26 @@ export default function SoportePage() {
           </a>
         </aside>
       </div>
+
+      {faqs.length > 0 && (
+        <section className="faq-seccion">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">PREGUNTAS FRECUENTES</span>
+              <h2>Lo que más nos preguntan</h2>
+            </div>
+          </div>
+
+          <div className="faq-lista">
+            {faqs.map((faq) => (
+              <details key={faq.id} className="faq-item">
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }
