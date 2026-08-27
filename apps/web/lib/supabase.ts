@@ -358,6 +358,78 @@ export async function signUpWithOrganization(
   return { needsEmailConfirmation: true };
 }
 
+// ── Actividad y auditoría ───────────────────────────────────────────
+
+export type UsageSummary = {
+  days: number;
+  totalOpens: number;
+  activeUsers: number;
+  deniedCount: number;
+  bySolution: { name: string; opens: number; users: number; lastUsed: string }[];
+  byUser: { name: string; opens: number; lastUsed: string }[];
+  denied: { name: string; motivo: string; veces: number }[];
+  daily: { day: string; opens: number }[];
+};
+
+export type AuditEntry = {
+  id: string;
+  action: string;
+  actor: string;
+  isPlatform: boolean;
+  metadata: Record<string, unknown>;
+  occurredAt: string;
+};
+
+export async function orgUsageSummary(client: SupabaseClient, organizationId: string, days = 30) {
+  const { data, error } = await client.rpc("org_usage_summary", {
+    p_organization_id: organizationId,
+    p_days: days,
+  });
+  if (error) throw error;
+  return data as UsageSummary;
+}
+
+export async function orgAuditLog(client: SupabaseClient, organizationId: string, limit = 60) {
+  const { data, error } = await client.rpc("org_audit_log", {
+    p_organization_id: organizationId,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as AuditEntry[];
+}
+
+/** Traduce los códigos de acción de la auditoría a lenguaje llano. */
+export function describeAuditAction(action: string): string {
+  const acciones: Record<string, string> = {
+    "org.member.add": "Agregó a alguien al equipo",
+    "org.member.set_role": "Cambió el rol de un miembro",
+    "org.member.set_status": "Cambió el estado de un miembro",
+    "org.invitation.create": "Creó una invitación",
+    "org.invitation.revoke": "Revocó una invitación",
+    "organization.change_plan": "Cambió el plan",
+    "organization.signup_plan": "Eligió plan al registrarse",
+    "organization.solutions.set": "Cambió las soluciones contratadas",
+    "members.accept_invitation": "Aceptó una invitación",
+    "admin.member.add": "DAVALSY agregó a alguien al equipo",
+    "admin.member.set_role": "DAVALSY cambió un rol",
+    "admin.member.set_status": "DAVALSY cambió el estado de un miembro",
+    "admin.invitation.create": "DAVALSY creó una invitación",
+    "admin.invitation.revoke": "DAVALSY revocó una invitación",
+    "admin.organization.create": "DAVALSY creó la organización",
+    "admin.organization.rename": "DAVALSY renombró la organización",
+    "admin.organization.set_plan": "DAVALSY cambió el plan",
+    "admin.organization.set_status": "DAVALSY cambió el estado de la organización",
+    "admin.organization.set_country": "DAVALSY cambió el país",
+    "admin.organization.set_primary_owner": "DAVALSY asignó propietario",
+    "admin.feature.override": "DAVALSY ajustó un permiso",
+    "admin.feature.clear_override": "DAVALSY quitó una excepción de permiso",
+    "payments.apply_event": "Se registró un evento de pago",
+    "payments.link_subscription": "Se vinculó la suscripción con el proveedor",
+  };
+
+  return acciones[action] ?? action;
+}
+
 // ── Preguntas frecuentes ────────────────────────────────────────────
 
 export type Faq = { id: string; question: string; answer: string };

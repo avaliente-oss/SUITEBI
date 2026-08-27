@@ -4,6 +4,7 @@ import { type ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   Bell,
   BookOpen,
   Check,
@@ -28,7 +29,7 @@ import { useSuite } from "@/lib/suite-context";
 import { Avatar, BrandMark } from "@/components/suite-ui";
 
 type NavItem = {
-  href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan" | "/equipo" | "/soporte";
+  href: "/lobby" | "/mesa-activa" | "/soluciones" | "/cuenta" | "/plan" | "/equipo" | "/soporte" | "/actividad";
   label: string;
   icon: typeof LayoutDashboard;
   shortcut?: string;
@@ -119,6 +120,9 @@ export function SuiteShell({ children }: { children: ReactNode }) {
           <button onClick={() => notReady("Recursos")}><BookOpen size={18} /> Recursos</button>
           <Link href="/equipo" className={pathname === "/equipo" ? "active" : ""}>
             <ShieldCheck size={18} /> Equipo y accesos
+          </Link>
+          <Link href="/actividad" className={pathname === "/actividad" ? "active" : ""}>
+            <Activity size={18} /> Actividad
           </Link>
 
           {isPlatformAdmin && (

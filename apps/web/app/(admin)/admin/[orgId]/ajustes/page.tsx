@@ -183,6 +183,7 @@ export default function AdminOrganizationSettingsPage({ params }: { params: Prom
         <Link href={`/admin/${orgId}`}>Permisos</Link>
         <Link href={`/admin/${orgId}/miembros`}>Miembros</Link>
         <Link href={`/admin/${orgId}/ajustes`} className="active">Ajustes</Link>
+        <Link href={`/admin/${orgId}/actividad`}>Actividad</Link>
       </nav>
 
       {error && <p className="auth-message is-error">{error}</p>}

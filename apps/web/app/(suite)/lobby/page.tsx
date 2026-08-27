@@ -33,9 +33,9 @@ export default function LobbyPage() {
         <div className="pulse-intro"><span><Command size={17} /></span><div><small>PULSO DAVALSY</small><strong>Todo bajo control</strong></div></div>
         <div className="pulse-stat"><small>SOLUCIONES ACTIVAS</small><strong>{availableCount}<span> / {solutions.length}</span></strong></div>
         <div className="pulse-stat positive"><small>ESTADO DE DATOS</small><strong><i /> Saludable</strong></div>
-        <button onClick={() => setToast("El registro de actividad todavía no está disponible.")}>
+        <Link href="/actividad" className="pulse-accion">
           <ExternalLink size={15} /> Ver actividad
-        </button>
+        </Link>
       </section>
 
       <div className="dashboard-grid">
