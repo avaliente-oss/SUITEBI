@@ -1,32 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { CreditCard, Headphones, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { Headphones } from "lucide-react";
 import { useSuite } from "@/lib/suite-context";
 import { isSupportChatConfigured, mountSupportChat } from "@/components/support-chat";
 import { getSupabaseBrowserClient, listActiveFaqs, type Faq } from "@/lib/supabase";
-
-const atajos = [
-  {
-    href: "/equipo",
-    icon: ShieldCheck,
-    titulo: "Invitar a tu equipo",
-    texto: "Suma personas, cambia sus roles o quita accesos.",
-  },
-  {
-    href: "/plan",
-    icon: CreditCard,
-    titulo: "Cambiar de plan",
-    texto: "Compara lo que incluye cada uno y cámbialo tú mismo.",
-  },
-  {
-    href: "/cuenta",
-    icon: KeyRound,
-    titulo: "Cambiar tu contraseña",
-    texto: "Actualiza tus datos y tu contraseña desde tu cuenta.",
-  },
-];
 
 export default function SoportePage() {
   const { organization, viewer } = useSuite();
@@ -98,57 +76,24 @@ export default function SoportePage() {
         </div>
 
         <aside className="soporte-aside">
-          <span className="soporte-aside-title">RESUÉLVELO TÚ MISMO</span>
-          {atajos.map((atajo) => {
-            const Icono = atajo.icon;
-            return (
-              <Link key={atajo.href} href={atajo.href} className="soporte-tarjeta">
-                <span className="icono"><Icono size={17} /></span>
-                <span>
-                  <strong>{atajo.titulo}</strong>
-                  <small>{atajo.texto}</small>
-                </span>
-              </Link>
-            );
-          })}
+          <span className="soporte-aside-title">PREGUNTAS FRECUENTES</span>
 
-          <span className="soporte-aside-title">¿PREFIERES CORREO?</span>
-          <a
-            className="soporte-tarjeta"
-            href={`mailto:soporte@davalsy.com?subject=${encodeURIComponent(
-              `Soporte · ${organization.name}`,
-            )}&body=${encodeURIComponent(
-              `\n\n---\nOrganización: ${organization.name}\nPlan: ${organization.planName}\nUsuario: ${viewer.fullName} (${viewer.email})`,
-            )}`}
-          >
-            <span className="icono"><Mail size={17} /></span>
-            <span>
-              <strong>soporte@davalsy.com</strong>
-              <small>Se abre con los datos de tu cuenta ya escritos.</small>
-            </span>
-          </a>
+          {faqs.length === 0 ? (
+            <p className="soporte-aside-vacio">
+              Todavía no hay preguntas publicadas. Escríbenos en el chat y con gusto te ayudamos.
+            </p>
+          ) : (
+            <div className="faq-lista">
+              {faqs.map((faq) => (
+                <details key={faq.id} className="faq-item">
+                  <summary>{faq.question}</summary>
+                  <p>{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
-
-      {faqs.length > 0 && (
-        <section className="faq-seccion">
-          <div className="section-heading">
-            <div>
-              <span className="section-kicker">PREGUNTAS FRECUENTES</span>
-              <h2>Lo que más nos preguntan</h2>
-            </div>
-          </div>
-
-          <div className="faq-lista">
-            {faqs.map((faq) => (
-              <details key={faq.id} className="faq-item">
-                <summary>{faq.question}</summary>
-                <p>{faq.answer}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-      )}
     </>
   );
 }
